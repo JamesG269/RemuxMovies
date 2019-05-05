@@ -80,7 +80,7 @@ namespace RemuxMovies
             PrintToAppOutputBG(VideoList.Count + " movies found:");
             foreach (var file in VideoList)
             {
-                PrintToAppOutputBG(file.FullName);
+                PrintToAppOutputBG(file.OriginalFullName);
             }
             PrintToAppOutputBG(" ");
             int num = 0;
@@ -96,12 +96,12 @@ namespace RemuxMovies
                 {
                     if (Properties.Settings.Default.OldMovies.Contains(file.FullName))
                     {
-                        PrintToAppOutputBG($"Movie {num} of {VideoList.Count} already processed: {file.FullName}");
-                        SkippedList.Add(file.FullName);
+                        PrintToAppOutputBG($"Movie {num} of {VideoList.Count} already processed: {file.OriginalFullName}");
+                        SkippedList.Add(file.OriginalFullName);
                         continue;
                     }
                 }
-                PrintToAppOutputBG($"Processing Movie {num} of {VideoList.Count}: {file.FullName} {Environment.NewLine}" + 
+                PrintToAppOutputBG($"Processing Movie {num} of {VideoList.Count}: {file.OriginalFullName} {Environment.NewLine}" + 
                                    $"Size: {file.Length.ToString("N0")} bytes."
                     );
                 bool ret = await Task.Run(() => processFile(file));
@@ -115,7 +115,7 @@ namespace RemuxMovies
                 }
                 else
                 {
-                    ErroredList.Add(file.FullName);
+                    ErroredList.Add(file.OriginalFullName);
                 }
             }
             displayList(SkippedList, " movies skipped:");
@@ -151,7 +151,7 @@ namespace RemuxMovies
                 RunFFProbe(file.FullName);
                 if (JsonFFProbe.Length == 0)
                 {
-                    PrintToAppOutputBG("FFProbe returned nothing: " + file.FullName);
+                    PrintToAppOutputBG("FFProbe returned nothing: " + file.OriginalFullName);
                     return false;
                 }
 
@@ -162,7 +162,7 @@ namespace RemuxMovies
                 if (FindAudioAndSubtitle(file) == false)
                 {
                     PrintToAppOutputBG("Error, No English Audio Found!");
-                    NoAudioList.Add(file.FullName);
+                    NoAudioList.Add(file.OriginalFullName);
                     return false;
                 }
                 PrintToAppOutputBG("Audio mapping: " + AudioMap + "\n" +
@@ -172,7 +172,7 @@ namespace RemuxMovies
 
                 string destFile = @"h:\media\movies\" + destName;
 
-                string parm = "-y -analyzeduration 64147483647 -probesize 4000000000 -i " + "\"" + file.FullName + "\"" + " -map 0:v " + AudioMap + SubMap +
+                string parm = "-y -analyzeduration 64147483647 -probesize 4000000000 -i " + "\"" + file.OriginalFullName + "\"" + " -map 0:v " + AudioMap + SubMap +
                     "-c:v copy -c:a ac3 -c:s copy " + "\"" + destFile + "\"";
                 PrintToAppOutputBG("FFMpeg parms: " + parm);
                 int ExitCode = RunFFMpeg(parm);
@@ -181,7 +181,7 @@ namespace RemuxMovies
                     PrintToAppOutputBG("FFMpeg had a possible problem, exit code: " + ExitCode);
                     return false;
                 }
-                SuccessList.Add(file.FullName, destFile);
+                SuccessList.Add(file.OriginalFullName, destFile);
                 return true;
             }
             catch (Exception e)
@@ -194,23 +194,39 @@ namespace RemuxMovies
         public class NewFileInfo
         {
             public FileInfo SavedFileInfo;
+            public string OriginalFullName
+            {
+                get
+                {
+                    return SavedFileInfo.FullName;
+                }
+            }
             public string FullName
             {
                 get
                 {
                     return SavedFileInfo.FullName.ToLower();
                 }
-                protected set
+            }
+            public string OriginalName
+            {
+                get
                 {
+                    return SavedFileInfo.Name;
                 }
             }
             public string Name
             {
-                get {
+                get
+                {
                     return SavedFileInfo.Name.ToLower();
                 }
-                protected set
+            }
+            public string OriginalDirectoryName
+            {
+                get
                 {
+                    return SavedFileInfo.DirectoryName;
                 }
             }
             public string DirectoryName
@@ -219,32 +235,25 @@ namespace RemuxMovies
                 {
                     return SavedFileInfo.DirectoryName.ToLower();
                 }
-                protected set
-                {
-                }
             }
-
             public long Length
             {
                 get
                 {
                     return SavedFileInfo.Length;
                 }
-                protected set
-                {
-                }
             }
         }
         private string ConstructName(NewFileInfo file)
         {            
-            string[] dirFrags = file.DirectoryName.Split('\\');
-            string destName = file.Name;
+            string[] dirFrags = file.OriginalDirectoryName.Split('\\');
+            string destName = file.OriginalName;
             string destDir = dirFrags.Last() + ".mkv";
-            string[] vidcodecs = new string[] { "x264", "x265", "AVC", "VC-1","HEVC" };
+            string[] vidcodecs = new string[] { "x264", "x265", "avc", "vc-1","hevc" };
 
             if (dirFrags.Length > 1)
             {
-                if (YearRegEx.IsMatch(destDir) || vidcodecs.Any(destDir.Contains))  // look for year e.g. (2019) or one of the video codecs used on blu-rays, this indicates a usuable name.
+                if (YearRegEx.IsMatch(destDir) || vidcodecs.Any(destDir.ToLower().Contains))  // look for year e.g. (2019) or one of the video codecs used on blu-rays, this indicates a usuable name.
                 {                                                                   // if the torrent is in its own directory, this name is usually better than sometimes shorted file names.
                     var tempList = GetFiles(file.DirectoryName, "*.mkv;");
                     if (tempList.Count == 1)
@@ -263,7 +272,7 @@ namespace RemuxMovies
             SubMap = "";
             if (!json.ContainsKey("streams"))
             {
-                PrintToAppOutputBG("Malformed movie data: No streams: " + file.FullName);
+                PrintToAppOutputBG("Malformed movie data: No streams: " + file.OriginalFullName);
                 return false;
             }
             var streams = json["streams"];
@@ -302,7 +311,7 @@ namespace RemuxMovies
                                 if (language == null || language == "")  // check for no language, usually if not labeled, the first audio track is english.
                                 {
                                     PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index);
-                                    UnusualList.Add(file.FullName);     // empty language tag, probably english.
+                                    UnusualList.Add(file.OriginalFullName);     // empty language tag, probably english.
                                 }
                                 else
                                 {
@@ -313,14 +322,14 @@ namespace RemuxMovies
                         else
                         {
                             PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index);
-                            UnusualList.Add(file.FullName);             // no tags or language in tags, probably english.
+                            UnusualList.Add(file.OriginalFullName);             // no tags or language in tags, probably english.
                         }
                         if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("title"))
                         {
                             if (streams[x]["tags"]["title"].ToString().ToLower().Contains("commentary"))
                             {
                                 PrintToAppOutputBG("Unusual movie, commentary is before audio track, index #" + index);
-                                UnusualList.Add(file.FullName);
+                                UnusualList.Add(file.OriginalFullName);
                                 continue;
                             }
                         }
