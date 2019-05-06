@@ -36,6 +36,9 @@ namespace RemuxMovies
         List<string> UnusualList;
         Dictionary<string, string> SuccessList;
         readonly Regex YearRegEx = new Regex(@"\(\d{4}\)", RegexOptions.Compiled);
+        readonly Regex YearRegEx2 = new Regex(@"\.\d{4}\.", RegexOptions.Compiled);
+        readonly Regex YearRegEx3 = new Regex(@"\s\d{4}\s", RegexOptions.Compiled);
+
 
         public MainWindow()
         {
@@ -58,6 +61,7 @@ namespace RemuxMovies
             NoAudioList = new List<string>();
             SkippedList = new List<string>();
             UnusualList = new List<string>();
+            GetFiles_Cancel = false;
 
             if (forceCheckBox.IsChecked == true)
             {
@@ -80,7 +84,7 @@ namespace RemuxMovies
             PrintToAppOutputBG(VideoList.Count + " movies found:");
             foreach (var file in VideoList)
             {
-                PrintToAppOutputBG(file.OriginalFullName);
+                PrintToAppOutputBG(file.originalFullName);
             }
             PrintToAppOutputBG(" ");
             int num = 0;
@@ -96,13 +100,13 @@ namespace RemuxMovies
                 {
                     if (Properties.Settings.Default.OldMovies.Contains(file.FullName))
                     {
-                        PrintToAppOutputBG($"Movie {num} of {VideoList.Count} already processed: {file.OriginalFullName}");
-                        SkippedList.Add(file.OriginalFullName);
+                        PrintToAppOutputBG($"Movie {num} of {VideoList.Count} already processed: {file.originalFullName}");
+                        SkippedList.Add(file.originalFullName);
                         continue;
                     }
                 }
-                PrintToAppOutputBG($"Processing Movie {num} of {VideoList.Count}: {file.OriginalFullName} {Environment.NewLine}" + 
-                                   $"Size: {file.Length.ToString("N0")} bytes."
+                PrintToAppOutputBG($"Processing Movie {num} of {VideoList.Count}: {file.originalFullName} {Environment.NewLine}" + 
+                                   $"Size: {file.length.ToString("N0")} bytes."
                     );
                 bool ret = await Task.Run(() => processFile(file));
                 if (ret)
@@ -115,7 +119,7 @@ namespace RemuxMovies
                 }
                 else
                 {
-                    ErroredList.Add(file.OriginalFullName);
+                    ErroredList.Add(file.originalFullName);
                 }
             }
             displayList(SkippedList, " movies skipped:");
@@ -151,7 +155,7 @@ namespace RemuxMovies
                 RunFFProbe(file.FullName);
                 if (JsonFFProbe.Length == 0)
                 {
-                    PrintToAppOutputBG("FFProbe returned nothing: " + file.OriginalFullName);
+                    PrintToAppOutputBG("FFProbe returned nothing: " + file.originalFullName);
                     return false;
                 }
 
@@ -162,7 +166,7 @@ namespace RemuxMovies
                 if (FindAudioAndSubtitle(file) == false)
                 {
                     PrintToAppOutputBG("Error, No English Audio Found!");
-                    NoAudioList.Add(file.OriginalFullName);
+                    NoAudioList.Add(file.originalFullName);
                     return false;
                 }
                 PrintToAppOutputBG("Audio mapping: " + AudioMap + "\n" +
@@ -172,7 +176,7 @@ namespace RemuxMovies
 
                 string destFile = @"h:\media\movies\" + destName;
 
-                string parm = "-y -analyzeduration 64147483647 -probesize 4000000000 -i " + "\"" + file.OriginalFullName + "\"" + " -map 0:v " + AudioMap + SubMap +
+                string parm = "-y -analyzeduration 64147483647 -probesize 4000000000 -i " + "\"" + file.originalFullName + "\"" + " -map 0:v " + AudioMap + SubMap +
                     "-c:v copy -c:a ac3 -c:s copy " + "\"" + destFile + "\"";
                 PrintToAppOutputBG("FFMpeg parms: " + parm);
                 int ExitCode = RunFFMpeg(parm);
@@ -181,7 +185,7 @@ namespace RemuxMovies
                     PrintToAppOutputBG("FFMpeg had a possible problem, exit code: " + ExitCode);
                     return false;
                 }
-                SuccessList.Add(file.OriginalFullName, destFile);
+                SuccessList.Add(file.originalFullName, destFile);
                 return true;
             }
             catch (Exception e)
@@ -192,73 +196,59 @@ namespace RemuxMovies
         }
         
         public class NewFileInfo
-        {
-            public FileInfo SavedFileInfo;
-            public string OriginalFullName
-            {
-                get
-                {
-                    return SavedFileInfo.FullName;
-                }
-            }
+        {            
+            public string originalFullName;
+            public string originalName;
+            public string originalDirectoryName;
+            public long length;            
             public string FullName
             {
-                get
-                {
-                    return SavedFileInfo.FullName.ToLower();
-                }
-            }
-            public string OriginalName
-            {
-                get
-                {
-                    return SavedFileInfo.Name;
-                }
+                get { return originalFullName.ToLower();}  
             }
             public string Name
             {
-                get
-                {
-                    return SavedFileInfo.Name.ToLower();
-                }
-            }
-            public string OriginalDirectoryName
-            {
-                get
-                {
-                    return SavedFileInfo.DirectoryName;
-                }
-            }
+                get { return originalName.ToLower(); }
+            }            
             public string DirectoryName
             {
-                get
-                {
-                    return SavedFileInfo.DirectoryName.ToLower();
-                }
-            }
-            public long Length
-            {
-                get
-                {
-                    return SavedFileInfo.Length;
-                }
-            }
+                get { return originalDirectoryName.ToLower(); }
+            }            
         }
         private string ConstructName(NewFileInfo file)
         {            
-            string[] dirFrags = file.OriginalDirectoryName.Split('\\');
-            string destName = file.OriginalName;
-            string destDir = dirFrags.Last() + ".mkv";
-            string[] vidcodecs = new string[] { "x264", "x265", "avc", "vc-1","hevc" };
-
+            string[] dirFrags = file.originalDirectoryName.Split('\\');            
+            string destName = file.originalName;
+            string destDirName = dirFrags.Last() + ".mkv";
+            string[] vidtags = new string[] { "x264", "x265", "avc", "vc-1","vc1","hevc","bluray","blu-ray","dts","truehd","mpeg-2","mpeg2","remux","h264","h265",
+                                              "h.264","h.265","1080p","1080i","720p","2160p","ddp","flac"};
+            int y = 0;
+            bool takeDirName = false;
             if (dirFrags.Length > 1)
             {
-                if (YearRegEx.IsMatch(destDir) || vidcodecs.Any(destDir.ToLower().Contains))  // look for year e.g. (2019) or one of the video codecs used on blu-rays, this indicates a usuable name.
-                {                                                                   // if the torrent is in its own directory, this name is usually better than sometimes shorted file names.
+                Match m = YearRegEx.Match(destDirName);
+                if (m.Success == false)
+                {
+                    m = YearRegEx2.Match(destDirName);
+                }
+                if (m.Success == true)
+                {
+                    int curYear = DateTime.Today.Year;
+                    bool result = Int32.TryParse(m.Groups[0].Value.Substring(1, 4), out y);
+                    if (result == true && y > 1900 && y < curYear)
+                    {
+                        takeDirName = true;
+                    }
+                }
+                if (vidtags.Any(destDirName.ToLower().Contains))
+                {
+                    takeDirName = true;
+                }
+                if (takeDirName)
+                {
                     var tempList = GetFiles(file.DirectoryName, "*.mkv;");
                     if (tempList.Count == 1)
                     {
-                        destName = destDir;
+                        destName = destDirName;
                     }                    
                 }
             }
@@ -272,7 +262,7 @@ namespace RemuxMovies
             SubMap = "";
             if (!json.ContainsKey("streams"))
             {
-                PrintToAppOutputBG("Malformed movie data: No streams: " + file.OriginalFullName);
+                PrintToAppOutputBG("Malformed movie data: No streams: " + file.originalFullName);
                 return false;
             }
             var streams = json["streams"];
@@ -311,7 +301,7 @@ namespace RemuxMovies
                                 if (language == null || language == "")  // check for no language, usually if not labeled, the first audio track is english.
                                 {
                                     PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index);
-                                    UnusualList.Add(file.OriginalFullName);     // empty language tag, probably english.
+                                    UnusualList.Add(file.originalFullName);     // empty language tag, probably english.
                                 }
                                 else
                                 {
@@ -322,14 +312,14 @@ namespace RemuxMovies
                         else
                         {
                             PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index);
-                            UnusualList.Add(file.OriginalFullName);             // no tags or language in tags, probably english.
+                            UnusualList.Add(file.originalFullName);             // no tags or language in tags, probably english.
                         }
                         if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("title"))
                         {
                             if (streams[x]["tags"]["title"].ToString().ToLower().Contains("commentary"))
                             {
                                 PrintToAppOutputBG("Unusual movie, commentary is before audio track, index #" + index);
-                                UnusualList.Add(file.OriginalFullName);
+                                UnusualList.Add(file.originalFullName);
                                 continue;
                             }
                         }
@@ -372,6 +362,7 @@ namespace RemuxMovies
         private async void Abort_Click(object sender, RoutedEventArgs e)
         {
             AbortProcessing = true;
+            GetFiles_Cancel = true;
             if (FFMpegProcess != null && FFMpegProcess.HasExited != true)
             {
                 FFMpegProcess.CancelErrorRead();

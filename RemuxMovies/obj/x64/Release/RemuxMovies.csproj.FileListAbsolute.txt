@@ -24,4 +24,3 @@ C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.Dr
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Newtonsoft.Json.pdb
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Newtonsoft.Json.xml
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies_Content.g.cs
-C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csprojAssemblyReference.cache

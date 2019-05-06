@@ -14,7 +14,7 @@ namespace RemuxMovies
         bool GetFiles_Cancel = false;
         
         public List<NewFileInfo> GetFiles(string path, string searchPattern)
-        {
+        {            
             List<NewFileInfo> retFiles = new List<NewFileInfo>();
             string[] patterns = searchPattern.Split(';');
             Stack<string> dirs = new Stack<string>();
@@ -41,7 +41,7 @@ namespace RemuxMovies
                     {
                         if (GetFiles_Cancel)
                         {
-                            retFiles = null;
+                            retFiles.Clear();
                             return retFiles;
                         }
                         DirectoryInfo dirInfo = new DirectoryInfo(currentDir);
@@ -50,7 +50,10 @@ namespace RemuxMovies
                         foreach (var f in fs)
                         {
                             var NewFInfo = new NewFileInfo();
-                            NewFInfo.SavedFileInfo = f;
+                            NewFInfo.originalFullName = f.FullName;
+                            NewFInfo.originalDirectoryName = f.DirectoryName;
+                            NewFInfo.originalName = f.Name;
+                            NewFInfo.length = f.Length;
                             retFiles.Add(NewFInfo);
                         }                        
                     }
