@@ -47,10 +47,9 @@ namespace RemuxMovies
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " + Environment.NewLine +
-                "convert first English audio to .ac3 and remove all other audio " + Environment.NewLine +
-                "and non-English subtitles." + Environment.NewLine +
-                "Written by James Gentile." + Environment.NewLine);
+            PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " + 
+                "convert first English audio to .ac3 and remove all other audio " +
+                "and non-English subtitles. Written by James Gentile.",0,2);
 
         }
         
@@ -62,11 +61,12 @@ namespace RemuxMovies
             SkippedList = new List<string>();
             UnusualList = new List<string>();
             GetFiles_Cancel = false;
+            AbortProcessing = false;
 
             if (forceCheckBox.IsChecked == true)
             {
                 forceAll = true;
-                PrintToAppOutputBG("Force mode, ignoring remembered movies.");
+                PrintToAppOutputBG("Force mode, ignoring remembered movies.",0,2);
             }
             else
             {
@@ -77,16 +77,16 @@ namespace RemuxMovies
                 Properties.Settings.Default.OldMovies.Clear();
                 Properties.Settings.Default.FirstRun = false;
             }
-            PrintToAppOutputBG(Properties.Settings.Default.OldMovies.Count + " movies remembered.");
+            PrintToAppOutputBG(Properties.Settings.Default.OldMovies.Count + " movies remembered.",0,2);
             VideoList = new List<NewFileInfo>();
             VideoList.AddRange(await Task.Run(() => GetFiles(@"f:\process", "*.mkv;")));
             VideoList.AddRange(await Task.Run(() => GetFiles(@"g:\process", "*.mkv;")));
-            PrintToAppOutputBG(VideoList.Count + " movies found:");
+            PrintToAppOutputBG(VideoList.Count + " movies found:",0,1);
             foreach (var file in VideoList)
             {
-                PrintToAppOutputBG(file.originalFullName);
+                PrintToAppOutputBG(file.originalFullName,0,1);
             }
-            PrintToAppOutputBG(" ");
+            PrintToAppOutputBG(" ",0,1);
             int num = 0;
             foreach (var file in VideoList)
             {
@@ -100,14 +100,15 @@ namespace RemuxMovies
                 {
                     if (Properties.Settings.Default.OldMovies.Contains(file.FullName))
                     {
-                        PrintToAppOutputBG($"Movie {num} of {VideoList.Count} already processed: {file.originalFullName}");
+                        PrintToAppOutputBG($"Movie {num} of {VideoList.Count} already processed:",0,1);
+                        PrintToAppOutputBG(file.originalFullName,0,1);
                         SkippedList.Add(file.originalFullName);
                         continue;
                     }
                 }
-                PrintToAppOutputBG($"Processing Movie {num} of {VideoList.Count}: {file.originalFullName} {Environment.NewLine}" + 
-                                   $"Size: {file.length.ToString("N0")} bytes."
-                    );
+                PrintToAppOutputBG($"Processing Movie {num} of {VideoList.Count}:", 0, 1);
+                PrintToAppOutputBG(file.originalFullName, 0, 1);
+                PrintToAppOutputBG($"Size: {file.length.ToString("N0")} bytes.", 0, 2);
                 bool ret = await Task.Run(() => processFile(file));
                 if (ret)
                 {
@@ -122,29 +123,29 @@ namespace RemuxMovies
                     ErroredList.Add(file.originalFullName);
                 }
             }
-            displayList(SkippedList, " movies skipped:");
-            displayList(ErroredList, " movies with errors:");
-            displayList(NoAudioList, " movies with no audio:");
-            displayList(UnusualList, " movies with unusal aspects:");
-            displayList(SuccessList, " movies processed successfully:");
-            PrintToAppOutputBG("Complete!");
+            displayList(SkippedList, " movies skipped:", "white");
+            displayList(ErroredList, " movies with errors:", "red");
+            displayList(NoAudioList, " movies with no audio:", "red");
+            displayList(UnusualList, " movies with unusal aspects:", "yellow");
+            displayList(SuccessList, " movies processed successfully:","lightgreen");
+            PrintToAppOutputBG("Complete!",1,1,"lightgreen");
             PrintToConsoleOutputBG("Complete!");
             System.Media.SystemSounds.Asterisk.Play();
         }
-        private void displayList(List<string> list, string displayStr)
+        private void displayList(List<string> list, string displayStr, string color)
         {
-            PrintToAppOutputBG(Environment.NewLine + list.Count + displayStr);
+            PrintToAppOutputBG(list.Count + displayStr,1,1, list.Count == 0 ? "White" : color );
             foreach (var file in list.Distinct())
             {
-                PrintToAppOutputBG(file);
+                PrintToAppOutputBG(file,0,1,color);
             }
         }
-        private void displayList(Dictionary<string, string> list, string displayStr)
+        private void displayList(Dictionary<string, string> list, string displayStr, string color)
         {
-            PrintToAppOutputBG(Environment.NewLine + list.Count + displayStr);
+            PrintToAppOutputBG(list.Count + displayStr, 1, 1, list.Count == 0 ? "White" : color);
             foreach (var file in list)
             {
-                PrintToAppOutputBG(file.Key + " -> " + file.Value);
+                PrintToAppOutputBG(file.Key + " -> " + file.Value, 0, 1, color);
             }
         }
         private bool processFile(NewFileInfo file)
@@ -155,34 +156,33 @@ namespace RemuxMovies
                 RunFFProbe(file.FullName);
                 if (JsonFFProbe.Length == 0)
                 {
-                    PrintToAppOutputBG("FFProbe returned nothing: " + file.originalFullName);
+                    PrintToAppOutputBG("FFProbe returned nothing: " + file.originalFullName,0,1);
                     return false;
                 }
 
                 string jsonlen = JsonFFProbe.Length.ToString("N0");
-                PrintToAppOutputBG($"Received Json data from FFProbe.exe ({jsonlen} bytes) ...");
+                PrintToAppOutputBG($"Received Json data from FFProbe.exe ({jsonlen} bytes) ...",0,1);
                 json = JsonValue.Parse(JsonFFProbe.ToString());
 
                 if (FindAudioAndSubtitle(file) == false)
                 {
-                    PrintToAppOutputBG("Error, No English Audio Found!");
+                    PrintToAppOutputBG("Error, No English Audio Found!",0,1,"red");
                     NoAudioList.Add(file.originalFullName);
                     return false;
                 }
-                PrintToAppOutputBG("Audio mapping: " + AudioMap + "\n" +
-                                   "Subtitle mapping: " + SubMap
-                    );
+                PrintToAppOutputBG("Audio mapping: " + AudioMap, 0, 1);
+                PrintToAppOutputBG("Subtitle mapping: " + SubMap, 0, 1);                    
                 string destName = ConstructName(file);
 
                 string destFile = @"h:\media\movies\" + destName;
 
                 string parm = "-y -analyzeduration 64147483647 -probesize 4000000000 -i " + "\"" + file.originalFullName + "\"" + " -map 0:v " + AudioMap + SubMap +
                     "-c:v copy -c:a ac3 -c:s copy " + "\"" + destFile + "\"";
-                PrintToAppOutputBG("FFMpeg parms: " + parm);
+                PrintToAppOutputBG("FFMpeg parms: " + parm, 0, 1);
                 int ExitCode = RunFFMpeg(parm);
                 if (ExitCode != 0)
                 {
-                    PrintToAppOutputBG("FFMpeg had a possible problem, exit code: " + ExitCode);
+                    PrintToAppOutputBG("FFMpeg had a possible problem, exit code: " + ExitCode,0,1,"red");
                     return false;
                 }
                 SuccessList.Add(file.originalFullName, destFile);
@@ -190,7 +190,7 @@ namespace RemuxMovies
             }
             catch (Exception e)
             {
-                PrintToAppOutputBG("Something in processFile() has caused an exception: " + e.InnerException.Message);
+                PrintToAppOutputBG("Something in processFile() has caused an exception: " + e.InnerException.Message,0,1,"red");
                 return false;
             }
         }
@@ -262,7 +262,7 @@ namespace RemuxMovies
             SubMap = "";
             if (!json.ContainsKey("streams"))
             {
-                PrintToAppOutputBG("Malformed movie data: No streams: " + file.originalFullName);
+                PrintToAppOutputBG("Malformed movie data: No streams: " + file.originalFullName,0,1,"red");
                 return false;
             }
             var streams = json["streams"];
@@ -271,11 +271,15 @@ namespace RemuxMovies
             {
                 if (!streams[x].ContainsKey("index"))
                 {
-                    PrintToAppOutputBG("Malformed movie data: No index in json element: " + x);
+                    PrintToAppOutputBG("Malformed movie data: No index in json element: " + x,0,1,"yellow");
+                    UnusualList.Add(file.originalFullName);
+                    continue;
                 }
                 if (!streams[x].ContainsKey("codec_type"))
                 {
-                    PrintToAppOutputBG("Malformed movie data: No codec_type in json element: " + x);
+                    PrintToAppOutputBG("Malformed movie data: No codec_type in json element: " + x,0,1,"yellow");
+                    UnusualList.Add(file.originalFullName);
+                    continue;
                 }
                 string codectype = JsonValue.Parse(streams[x]["codec_type"].ToString());
                 int index = JsonValue.Parse(streams[x]["index"].ToString());
@@ -300,7 +304,7 @@ namespace RemuxMovies
                             {
                                 if (language == null || language == "")  // check for no language, usually if not labeled, the first audio track is english.
                                 {
-                                    PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index);
+                                    PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index,0,1,"yellow");
                                     UnusualList.Add(file.originalFullName);     // empty language tag, probably english.
                                 }
                                 else
@@ -311,14 +315,14 @@ namespace RemuxMovies
                         }
                         else
                         {
-                            PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index);
+                            PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index,0,1);
                             UnusualList.Add(file.originalFullName);             // no tags or language in tags, probably english.
                         }
                         if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("title"))
                         {
                             if (streams[x]["tags"]["title"].ToString().ToLower().Contains("commentary"))
                             {
-                                PrintToAppOutputBG("Unusual movie, commentary is before audio track, index #" + index);
+                                PrintToAppOutputBG("Unusual movie, commentary is before audio track, index #" + index,0,1,"yellow");
                                 UnusualList.Add(file.originalFullName);
                                 continue;
                             }
@@ -341,18 +345,28 @@ namespace RemuxMovies
                         break;
                 }
             }
-            PrintToAppOutputBG("Number of Video streams: " + VidNum);
-            PrintToAppOutputBG("Number of Audio streams: " + AudNum);
-            PrintToAppOutputBG("Number of Subtitle streams: " + SubNum);
+            PrintToAppOutputBG("Number of Video streams: " + VidNum,0,1);
+            PrintToAppOutputBG("Number of Audio streams: " + AudNum,0,1);
+            PrintToAppOutputBG("Number of Subtitle streams: " + SubNum,0,1);
             return foundAudio;
         }
 
-        private void PrintToAppOutputBG(string str)
+        private void PrintToAppOutputBG(string str, int preNewLines, int postNewLines, string color= "White")
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                AppOutput.Text += str;
-                AppOutput.Text += Environment.NewLine;
+                BrushConverter bc = new BrushConverter();
+                TextRange tr = new TextRange(AppOutput.Document.ContentEnd, AppOutput.Document.ContentEnd);
+                tr.Text = (new string('\r', preNewLines) + str + new string('\r', postNewLines));
+                tr.ApplyPropertyValue(TextElement.ForegroundProperty, Brushes.Red);
+                try
+                {
+                    tr.ApplyPropertyValue(TextElement.ForegroundProperty,
+                        bc.ConvertFromString(color));
+                }
+                catch (FormatException) { }
+
+                //AppOutput.AppendText(tr);                
                 AppScroll.ScrollToEnd();
             }));
         }
@@ -368,12 +382,18 @@ namespace RemuxMovies
                 FFMpegProcess.CancelErrorRead();
                 FFMpegProcess.CancelErrorRead();
                 FFMpegProcess.Kill();
+                PrintToAppOutputBG("FFMpeg process killed.",0,1,"red");
+                while (FFMpegProcess != null && FFMpegProcess.HasExited != true)
+                {
+                    await Task.Delay(10);
+                }
             }
-            while (FFMpegProcess.HasExited != true)
+            else
             {
-                await Task.Delay(10);
+                PrintToAppOutputBG("FFMpeg can't be aborted, it's not running.",0,1,"red");
             }
-            PrintToAppOutputBG("FFMpeg process killed.");
+
+            
         }
 
         private void PrintToConsoleOutputBG(string str)
