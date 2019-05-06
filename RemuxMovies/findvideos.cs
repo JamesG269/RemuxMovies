@@ -53,6 +53,9 @@ namespace RemuxMovies
                             NewFInfo.originalFullName = f.FullName;
                             NewFInfo.originalDirectoryName = f.DirectoryName;
                             NewFInfo.originalName = f.Name;
+                            NewFInfo.DirectoryName = f.DirectoryName.ToLower();
+                            NewFInfo.FullName = f.FullName.ToLower();
+                            NewFInfo.Name = f.Name.ToLower();
                             NewFInfo.length = f.Length;
                             retFiles.Add(NewFInfo);
                         }                        

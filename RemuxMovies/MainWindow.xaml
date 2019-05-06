@@ -16,24 +16,26 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="50" MaxWidth="50"/>
             <ColumnDefinition Width="50" MaxWidth="50"/>
-            <ColumnDefinition Width="50" MaxWidth="50"/>
+            <ColumnDefinition Width="auto" MaxWidth="50"/>
             <ColumnDefinition Width="auto"/> 
-            <ColumnDefinition Width="50" MaxWidth="50"/>
-            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto" MaxWidth="50"/>
+            <ColumnDefinition Width="50"/>
+            <ColumnDefinition Width="50"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
-        <ScrollViewer x:Name="AppScroll" Grid.Row="0" Grid.ColumnSpan="8">
+        <ScrollViewer x:Name="AppScroll" Grid.Row="0" Grid.ColumnSpan="9">
             <RichTextBox x:Name="AppOutput" FontFamily="consolas" FontSize="12" Grid.Row="0" Grid.Column="0" Margin="0,0,0,0" Foreground="White" Background="Black"/>
         </ScrollViewer>
-        <ScrollViewer x:Name="ConsoleScroll" Grid.Row="1" Grid.ColumnSpan="8" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible">
+        <ScrollViewer x:Name="ConsoleScroll" Grid.Row="1" Grid.ColumnSpan="9" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible">
             <TextBox x:Name="ConsoleOutput" FontFamily="consolas" FontSize="12" Grid.Row="1" Grid.ColumnSpan="8" Margin="0,0,0,0" Foreground="White" Background="Black"/>
         </ScrollViewer>
         
-        <CheckBox Name="forceCheckBox" Content="Force" Grid.Column="5" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center" />
+        <CheckBox Name="forceCheckBox" Content="Force" Grid.Column="6" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center" />
         <Button Content="  Start  " HorizontalAlignment="Center" Click="Start_Click" Width="auto" Height="20" Grid.Column="2" Grid.Row="2"/>
         <Button Content="  Abort  " HorizontalAlignment="Center" Click="Abort_Click" Width="auto" Height="20" Grid.Column="3" Grid.Row="2"/>
+        <Button Content="  Clear  " HorizontalAlignment="Center" Click="Clear_Click" Width="auto" Height="20" Grid.Column="4" Grid.Row="2"/>
 
     </Grid>
 </Window>

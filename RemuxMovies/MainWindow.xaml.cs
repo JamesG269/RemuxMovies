@@ -44,15 +44,12 @@ namespace RemuxMovies
         {
             InitializeComponent();
         }
-
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " + 
                 "convert first English audio to .ac3 and remove all other audio " +
                 "and non-English subtitles. Written by James Gentile.",0,2);
-
-        }
-        
+        }        
         private async void Start_Click(object sender, RoutedEventArgs e)
         {
             ErroredList = new List<string>();
@@ -159,10 +156,9 @@ namespace RemuxMovies
                     PrintToAppOutputBG("FFProbe returned nothing: " + file.originalFullName,0,1);
                     return false;
                 }
-
                 string jsonlen = JsonFFProbe.Length.ToString("N0");
                 PrintToAppOutputBG($"Received Json data from FFProbe.exe ({jsonlen} bytes) ...",0,1);
-                json = JsonValue.Parse(JsonFFProbe.ToString());
+                json = JsonValue.Parse(JsonFFProbe.ToString().ToLower());
 
                 if (FindAudioAndSubtitle(file) == false)
                 {
@@ -200,20 +196,11 @@ namespace RemuxMovies
             public string originalFullName;
             public string originalName;
             public string originalDirectoryName;
-            public long length;            
-            public string FullName
-            {
-                get { return originalFullName.ToLower();}  
-            }
-            public string Name
-            {
-                get { return originalName.ToLower(); }
-            }            
-            public string DirectoryName
-            {
-                get { return originalDirectoryName.ToLower(); }
-            }            
-        }
+            public long length;
+            public string FullName;
+            public string Name;
+            public string DirectoryName;
+        }   
         private string ConstructName(NewFileInfo file)
         {            
             string[] dirFrags = file.originalDirectoryName.Split('\\');            
@@ -294,28 +281,27 @@ namespace RemuxMovies
                         {
                             continue;
                         }
-
-                        // Find first audio file that is english or unspecified language, which is usually english.
+                        // Find first audio track that is english or unspecified language, which is usually english.
 
                         if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("language"))
                         {
                             var language = streams[x]["tags"]["language"];
                             if (!(language == "eng"))
                             {
-                                if (language == null || language == "")  // check for no language, usually if not labeled, the first audio track is english.
+                                if (language == null || language == "")  
                                 {
                                     PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index,0,1,"yellow");
-                                    UnusualList.Add(file.originalFullName);     // empty language tag, probably english.
+                                    UnusualList.Add(file.originalFullName);
                                 }
                                 else
                                 {
-                                    continue;                           // not empty and not english
+                                    continue;                           
                                 }
                             }
                         }
                         else
                         {
-                            PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index,0,1);
+                            PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index,0,1,"yellow");
                             UnusualList.Add(file.originalFullName);             // no tags or language in tags, probably english.
                         }
                         if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("title"))
@@ -392,8 +378,12 @@ namespace RemuxMovies
             {
                 PrintToAppOutputBG("FFMpeg can't be aborted, it's not running.",0,1,"red");
             }
+        }
 
-            
+        private void Clear_Click(object sender, RoutedEventArgs e)
+        {
+            AppOutput.Document.Blocks.Clear();
+            ConsoleOutput.Clear();
         }
 
         private void PrintToConsoleOutputBG(string str)
@@ -402,7 +392,10 @@ namespace RemuxMovies
             {
                 if (FrameFound == true)
                 {
-                    ConsoleOutput.Text = ConsoleOutput.Text.Substring(0, LastFrame);
+                    if (ConsoleOutput.Text.Length > LastFrame)
+                    {
+                        ConsoleOutput.Text = ConsoleOutput.Text.Substring(0, LastFrame);
+                    }
                     FrameFound = false;
                 }
                 if (str.StartsWith("frame"))
