@@ -35,11 +35,13 @@ namespace RemuxMovies
         List<string> SkippedList;
         List<string> UnusualList;
         Dictionary<string, string> SuccessList;
-        readonly Regex YearRegEx = new Regex(@"\(\d{4}\)", RegexOptions.Compiled);
-        readonly Regex YearRegEx2 = new Regex(@"\.\d{4}\.", RegexOptions.Compiled);
-        readonly Regex YearRegEx3 = new Regex(@"\s\d{4}\s", RegexOptions.Compiled);
-
-
+        readonly Regex[] regexChecks = new Regex[]
+        {
+            new Regex(@"\(\d{4}\)", RegexOptions.Compiled),
+            new Regex(@"\.\d{4}\.", RegexOptions.Compiled),
+            new Regex(@"\s\d{4}\s", RegexOptions.Compiled)
+        };
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -173,7 +175,7 @@ namespace RemuxMovies
                 string destFile = @"h:\media\movies\" + destName;
 
                 string parm = "-y -analyzeduration 64147483647 -probesize 4000000000 -i " + "\"" + file.originalFullName + "\"" + " -map 0:v " + AudioMap + SubMap +
-                    "-c:v copy -c:a ac3 -c:s copy " + "\"" + destFile + "\"";
+                              "-c:v copy -c:a ac3 -c:s copy " + "\"" + destFile + "\"";
                 PrintToAppOutputBG("FFMpeg parms: " + parm, 0, 1);
                 int ExitCode = RunFFMpeg(parm);
                 if (ExitCode != 0)
@@ -206,30 +208,33 @@ namespace RemuxMovies
             string[] dirFrags = file.originalDirectoryName.Split('\\');            
             string destName = file.originalName;
             string destDirName = dirFrags.Last() + ".mkv";
-            string[] vidtags = new string[] { "x264", "x265", "avc", "vc-1","vc1","hevc","bluray","blu-ray","dts","truehd","mpeg-2","mpeg2","remux","h264","h265",
-                                              "h.264","h.265","1080p","1080i","720p","2160p","ddp","flac"};
+            string[] vidtags = new string[] { "x264", "x265", "avc", "vc-1","vc1","hevc","bluray","blu-ray","dts","truehd","ddp","flac","ac3","aac","mpeg-2","mpeg2","remux","h264","h265",
+                                              "h.264","h.265","1080p","1080i","720p","2160p"};
             int y = 0;
             bool takeDirName = false;
+            int curYear = DateTime.Today.Year;
             if (dirFrags.Length > 1)
             {
-                Match m = YearRegEx.Match(destDirName);
-                if (m.Success == false)
-                {
-                    m = YearRegEx2.Match(destDirName);
-                }
-                if (m.Success == true)
-                {
-                    int curYear = DateTime.Today.Year;
-                    bool result = Int32.TryParse(m.Groups[0].Value.Substring(1, 4), out y);
-                    if (result == true && y > 1900 && y < curYear)
-                    {
-                        takeDirName = true;
-                    }
-                }
                 if (vidtags.Any(destDirName.ToLower().Contains))
                 {
                     takeDirName = true;
                 }
+                else
+                {
+                    foreach (var r in regexChecks)
+                    {
+                        Match m = r.Match(destDirName);
+                        if (m.Success)
+                        {
+                            bool result = Int32.TryParse(m.Groups[0].Value.Substring(1, 4), out y);
+                            if (result == true && y > 1900 && y < curYear)
+                            {
+                                takeDirName = true;
+                                break;
+                            }
+                        }
+                    }
+                }                
                 if (takeDirName)
                 {
                     var tempList = GetFiles(file.DirectoryName, "*.mkv;");
@@ -367,12 +372,12 @@ namespace RemuxMovies
             {
                 FFMpegProcess.CancelErrorRead();
                 FFMpegProcess.CancelErrorRead();
-                FFMpegProcess.Kill();
-                PrintToAppOutputBG("FFMpeg process killed.",0,1,"red");
+                FFMpegProcess.Kill();                
                 while (FFMpegProcess != null && FFMpegProcess.HasExited != true)
                 {
                     await Task.Delay(10);
                 }
+                PrintToAppOutputBG("FFMpeg process killed.", 0, 1, "red");
             }
             else
             {
