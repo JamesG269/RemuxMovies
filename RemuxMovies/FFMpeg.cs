@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace RemuxMovies
@@ -10,9 +13,16 @@ namespace RemuxMovies
     public partial class MainWindow : Window
     {
         Process FFMpegProcess;
-        private int RunFFMpeg(string parm)
+        private async Task<int> RunFFMpeg(string parm)
         {
-            var processStartInfo = new ProcessStartInfo(@"c:\users\jgentile\software\ffmpeg\bin\ffmpeg.exe", parm);
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var ffmpeg = path + @"\software\ffmpeg\bin\ffmpeg.exe";
+            if (!(File.Exists(ffmpeg)))
+            {
+                await PrintToAppOutputBG("Error, no ffmpeg.exe found.", 0, 1, "red");
+                return -1;
+            }
+            var processStartInfo = new ProcessStartInfo(ffmpeg, parm);
 
             processStartInfo.UseShellExecute = false;
             processStartInfo.ErrorDialog = false;
@@ -34,9 +44,16 @@ namespace RemuxMovies
             FFMpegProcess.WaitForExit();
             return FFMpegProcess.ExitCode;
         }
-        private void RunFFProbe(string file)
-        {            
-            var processStartInfo = new ProcessStartInfo(@"c:\users\jgentile\software\ffmpeg\bin\ffprobe.exe", "\"" + file + "\"" + " -v quiet -print_format json -show_streams");
+        private async Task<int> RunFFProbe(string file)
+        {
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var ffprobe = path + @"\software\ffmpeg\bin\ffprobe.exe";
+            if (!(File.Exists(ffprobe)))
+            {
+                await PrintToAppOutputBG("Error, no ffprobe.exe found at: " + path + " " + ffprobe, 0, 1, "red");
+                return -1;
+            }
+            var processStartInfo = new ProcessStartInfo(ffprobe, "\"" + file + "\"" + " -v quiet -print_format json -show_streams");
 
             processStartInfo.UseShellExecute = false;
             processStartInfo.ErrorDialog = false;
@@ -55,6 +72,7 @@ namespace RemuxMovies
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             process.WaitForExit();
+            return process.ExitCode;
         }
 
         StringBuilder JsonFFProbe = new StringBuilder();
@@ -62,21 +80,21 @@ namespace RemuxMovies
         {
             JsonFFProbe.Append(e.Data);
         }
-        private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+        private async void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
             {
                 return;
             }
-            PrintToConsoleOutputBG(e.Data);
+            await PrintToConsoleOutputBG(e.Data);
         }
-        private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        private async void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
             {
                 return;
             }
-            PrintToConsoleOutputBG(e.Data);
+            await PrintToConsoleOutputBG(e.Data);
         }
     }
 }

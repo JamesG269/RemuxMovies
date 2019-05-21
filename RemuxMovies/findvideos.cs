@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace RemuxMovies
@@ -8,8 +9,8 @@ namespace RemuxMovies
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {
-        List<NewFileInfo> VideoList;
+    {        
+        List<NewFileInfo> nfoList;
 
         bool GetFiles_Cancel = false;
         
@@ -46,17 +47,27 @@ namespace RemuxMovies
                         }
                         DirectoryInfo dirInfo = new DirectoryInfo(currentDir);
                         FileInfo[] fs = dirInfo.GetFiles(filter);
-                        
+
                         foreach (var f in fs)
                         {
+                            
                             var NewFInfo = new NewFileInfo();
                             NewFInfo.originalFullName = f.FullName;
                             NewFInfo.originalDirectoryName = f.DirectoryName;
                             NewFInfo.originalName = f.Name;
                             NewFInfo.DirectoryName = f.DirectoryName.ToLower();
                             NewFInfo.FullName = f.FullName.ToLower();
-                            NewFInfo.Name = f.Name.ToLower();
+                            NewFInfo.Name = f.Name.ToLower();                            
                             NewFInfo.length = f.Length;
+                            NewFInfo.fromDirectory = path;
+                            if (forceAll == false && Properties.Settings.Default.OldMovies.Contains(NewFInfo.FullName))
+                            {
+                                NewFInfo._Remembered = true;
+                            }
+                            else
+                            {
+                                NewFInfo._Remembered = false;
+                            }
                             retFiles.Add(NewFInfo);
                         }                        
                     }

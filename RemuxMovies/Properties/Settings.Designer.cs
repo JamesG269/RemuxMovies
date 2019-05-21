@@ -48,5 +48,51 @@ namespace RemuxMovies.Properties {
                 this["FirstRun"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::System.Collections.Specialized.StringCollection OldMusicVidsSources {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["OldMusicVidsSources"]));
+            }
+            set {
+                this["OldMusicVidsSources"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::System.Collections.Specialized.StringCollection OldMoviesSources {
+            get {
+                return ((global::System.Collections.Specialized.StringCollection)(this["OldMoviesSources"]));
+            }
+            set {
+                this["OldMoviesSources"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string MusicVidOutput {
+            get {
+                return ((string)(this["MusicVidOutput"]));
+            }
+            set {
+                this["MusicVidOutput"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string MovieOutput {
+            get {
+                return ((string)(this["MovieOutput"]));
+            }
+            set {
+                this["MovieOutput"] = value;
+            }
+        }
     }
 }
