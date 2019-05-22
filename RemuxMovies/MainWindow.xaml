@@ -62,6 +62,8 @@
                     <Button Content="  Movies Output Folder " HorizontalAlignment="Left" Click="ChangeMovieOutputDir" Width="auto" Height="20"/>
                     <Button Content="  Add Music Videos Folder " HorizontalAlignment="Left" Click="AddMusicVideosDir_Click" Width="auto" Height="20"/>
                     <Button Content="  Music Videos Output Folder " HorizontalAlignment="Left" Click="ChangeMusicVidOutputDir" Width="auto" Height="20"/>
+                    <Button Content="  Add TV Shows Folder " HorizontalAlignment="Left" Click="AddTVShowsFolder" Width="auto" Height="20"/>
+                    <Button Content="  TV Shows Output Folder " HorizontalAlignment="Left" Click="AddTVShowsOutputFolder" Width="auto" Height="20"/>
                 </StackPanel>
                 <ListView Name="listView" Grid.Column="1" Grid.Row="0" SelectionChanged="ListView_SelectionChanged">
                     <ListView.ContextMenu>
@@ -117,14 +119,10 @@
                             <GridViewColumn Header="Destination File Names"
                             DisplayMemberBinding="{Binding destName}" Width="auto">
                             </GridViewColumn>
-                            
                         </GridView>
                     </ListView.View>
                 </ListView>
             </Grid>
-            
         </TabItem>
-
     </TabControl>
-
 </Window>

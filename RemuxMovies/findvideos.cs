@@ -50,7 +50,10 @@ namespace RemuxMovies
 
                         foreach (var f in fs)
                         {
-                            
+                            if (f.FullName.ToLower().Contains("sample"))
+                            {
+                                continue;
+                            }
                             var NewFInfo = new NewFileInfo();
                             NewFInfo.originalFullName = f.FullName;
                             NewFInfo.originalDirectoryName = f.DirectoryName;

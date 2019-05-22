@@ -32,15 +32,23 @@ namespace RemuxMovies
         string AudioMap, SubMap, VidMap, VidMapTo = "";
         bool forceAll = false;
         JsonValue json;
-        
+
         readonly Regex[] regexChecks = new Regex[]
         {
             new Regex(@"\(\d{4}\)", RegexOptions.Compiled),
             new Regex(@"\.\d{4}\.", RegexOptions.Compiled),
             new Regex(@"\s\d{4}\s", RegexOptions.Compiled)
         };
+        readonly Regex[] TVShowRegex = new Regex[]
+        {
+            new Regex(@"\.S\d{2,3}E\d{2,3}\.", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"\sS\d{2,3}E\d{2,3}\s", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"-S\d{2,3}E\d{2,3}-", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+        };
+
         const int MovieType = 0;
         const int MusicVideoType = 1;
+        const int TVShowsType = 2;
         List<string> ErroredList;
         Dictionary<string, string> SuccessList;
         List<string> NoAudioList;
@@ -60,9 +68,11 @@ namespace RemuxMovies
             await PrintToAppOutputBG(Properties.Settings.Default.OldMovies.Count + " movies remembered.", 0, 2);
             if (Properties.Settings.Default.FirstRun == true)
             {
+                MessageBox.Show("First run, directories cleared.");
                 Properties.Settings.Default.OldMovies = new System.Collections.Specialized.StringCollection();
                 Properties.Settings.Default.OldMoviesSources = new System.Collections.Specialized.StringCollection();
                 Properties.Settings.Default.OldMusicVidsSources = new System.Collections.Specialized.StringCollection();
+                Properties.Settings.Default.OldTVShowsSources = new System.Collections.Specialized.StringCollection();
 
                 Properties.Settings.Default.FirstRun = false;
                 Properties.Settings.Default.Save();
@@ -82,6 +92,10 @@ namespace RemuxMovies
             {
                 await GotSourceDirRun(d, MusicVideoType);
             }
+            foreach (var d in Properties.Settings.Default.OldTVShowsSources)
+            {
+                await GotSourceDirRun(d, TVShowsType);
+            }
             if (Directory.Exists(Properties.Settings.Default.MovieOutput))
             {
                 ChangeOutputDirRun(Properties.Settings.Default.MovieOutput, MovieType);
@@ -90,13 +104,19 @@ namespace RemuxMovies
             {
                 ChangeOutputDirRun(Properties.Settings.Default.MusicVidOutput, MusicVideoType);
             }
+            if (Directory.Exists(Properties.Settings.Default.MusicVidOutput))
+            {
+                ChangeOutputDirRun(Properties.Settings.Default.TVShowsOutput, TVShowsType);
+            }
+
             await DirReport();
         }
 
         private async Task DirReport()
         {
-            await PrintToAppOutputBG($"{SourceDirsInternal.Where(x => x.type == MovieType).Count()} Movie directories containing {SourceFiles.Where(x => x.type == MovieType && x._Remembered == false).Count()} movies found.", 0, 1);
-            await PrintToAppOutputBG($"{SourceDirsInternal.Where(x => x.type == MusicVideoType).Count()} Music Video directories containing {SourceFiles.Where(x => x.type == MusicVideoType && x._Remembered == false).Count()} music videos found.", 0, 1);
+            await PrintToAppOutputBG($"{SourceDirs.Where(x => x.type == MovieType).Count()} Movie directories containing {SourceFiles.Where(x => x.type == MovieType && x._Remembered == false).Count()} new movies found.", 0, 1);
+            await PrintToAppOutputBG($"{SourceDirs.Where(x => x.type == MusicVideoType).Count()} Music Video directories containing {SourceFiles.Where(x => x.type == MusicVideoType && x._Remembered == false).Count()} new music videos found.", 0, 1);
+            await PrintToAppOutputBG($"{SourceDirs.Where(x => x.type == TVShowsType).Count()} TV Shows directories containing {SourceFiles.Where(x => x.type == TVShowsType && x._Remembered == false).Count()} new TV Shows found.", 0, 1);
         }
 
         private async void Start_Click(object sender, RoutedEventArgs e)
@@ -211,7 +231,7 @@ namespace RemuxMovies
                     continue;
                 }                
                 if (file.type == MusicVideoType)
-                {                    ;
+                {
                     await createNfo(file);
                 }
 
@@ -305,7 +325,16 @@ namespace RemuxMovies
                 {
                     return false;
                 }
-                string destFullName = System.IO.Path.Combine(OutputDirs.Where(x => x.type == file.type).First().Name, file.destName);
+                string makePath = OutputDirs.Where(x => x.type == file.type).First().Name;
+                if (file.type == TVShowsType)
+                {
+                    makePath = System.IO.Path.Combine(makePath, file.destPath);
+                    if (!Directory.Exists(makePath))
+                    {
+                        Directory.CreateDirectory(makePath);
+                    }
+                }
+                string destFullName = System.IO.Path.Combine(makePath, file.destName);
 
                 string parm = "-y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
                               "-c:v " + VidMapTo + "-c:a ac3 -c:s copy " + "\"" + destFullName + "\"";
@@ -404,6 +433,7 @@ namespace RemuxMovies
                     return _Remembered.ToString();
                 }
             }
+            public string destPath;
         }
         public class NewDirInfo
         {
@@ -440,17 +470,32 @@ namespace RemuxMovies
                     {
                         return "Movies";
                     }
-                    else
+                    else if (type == MusicVideoType)
                     {
                         return "Music Videos";
+                    }
+                    else
+                    {
+                        return "TV Shows";
                     }
                 }                
             }
         }
-        private void ConstructName(NewFileInfo file)
+        private void ConstructName(NewFileInfo file, Match TVShowM)
         {
+            string destName;
+
+            if (TVShowM.Success)
+            {
+                file.destPath = file.Name.Substring(0, TVShowM.Index);                
+                file.destName = file.Name;  // TVShowS03E02.mkv -> OutputDir\TVShow\TVShowS03E02.mkv per Kodi guidelines for TV Shows.                
+                return;
+            }
+
+            // if regular movie, this tries to find the more complete name from the directory, as some movies are in the form \Movie.Year.mkv\mov.mkv or some varient of this.
+
             string[] dirFrags = file.originalDirectoryName.Split('\\');
-            string destName = file.originalName.Substring(0, file.originalName.Length - 4) + ".mkv";
+            destName = file.originalName.Substring(0, file.originalName.Length - 4) + ".mkv";
             string destDirName = dirFrags.Last() + ".mkv";
             string[] vidtags = new string[] { "x264", "x265", "avc", "vc-1","vc1","hevc","bluray","blu-ray","dts","truehd","ddp","flac","ac3","aac","mpeg-2","mpeg2","remux","h264","h265",
                                               "h.264","h.265","1080p","1080i","720p","2160p"};
@@ -653,330 +698,11 @@ namespace RemuxMovies
         private static readonly object AppOutputStringLock = new object();
         StringBuilder ConsoleOutputString = new StringBuilder();
 
-        private async void AddMoviesDir_Click(object sender, RoutedEventArgs e)
-        {
-            await AddDir(MovieType);
-        }
-
-        List<NewDirInfo> SourceDirs = new List<NewDirInfo>();
-        List<NewDirInfo> SourceDirsInternal = new List<NewDirInfo>();
-        List<NewFileInfo> SourceFiles = new List<NewFileInfo>();
-        List<NewDirInfo> OutputDirs = new List<NewDirInfo>();
-
-        private async void AddMusicVideosDir_Click(object sender, RoutedEventArgs e)
-        {
-            await AddDir(MusicVideoType);
-        }
-        private async Task AddDir(int type)
-        {
-            var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
-            if (dialog.ShowDialog() == false)
-            {
-                return;
-            }
-            string VidDir = dialog.SelectedPath;
-            await GotSourceDirRun(VidDir, type);
-            if (type == MovieType)
-            {
-                Properties.Settings.Default.OldMoviesSources.Clear();
-                Properties.Settings.Default.OldMoviesSources.AddRange(SourceDirsInternal.Where(x => x.type == MovieType).Select(x => x.Name).ToArray());
-            }
-            else
-            {
-                Properties.Settings.Default.OldMusicVidsSources.Clear();
-                Properties.Settings.Default.OldMusicVidsSources.AddRange(SourceDirsInternal.Where(x => x.type == MusicVideoType).Select(x => x.Name).ToArray());
-            }
-            Properties.Settings.Default.Save();
-        }
-        private async Task GotSourceDirRun(string VidDir, int type)
-        {
-            await Task.Run(() => GotSourceDir(VidDir, type));
-            listView.ItemsSource = SourceDirs;
-            listView.Items.Refresh();
-        }
-        private void GotSourceDir(string VidDir, int type)
-        {
-            if (!Directory.Exists(VidDir))
-            {
-                return;
-            }
-            if (SourceDirs.Where(x => x.Name == VidDir).Count() > 0)
-            {
-                SourceDirs.Remove(SourceDirs.Where(x => x.Name == VidDir).First());
-            }
-            NewDirInfo temp = new NewDirInfo();
-            temp.Name = VidDir;
-            temp.type = type;            
-            SourceDirs.Add(temp);
-            if (SourceDirsInternal.Where(x => x.Name == VidDir).Count() > 0)
-            {
-                SourceDirsInternal.Remove(SourceDirsInternal.Where(x => x.Name == VidDir).First());
-            }
-            SourceDirsInternal.Add(temp);
-            List<NewFileInfo> ftemp = GetFiles(VidDir, "*.mkv;*.mp4;*.avi;*.m4v;");
-            foreach (var f in ftemp)
-            {
-                f.type = type;
-                if (SourceFiles.Where(x => x.originalFullName == f.originalFullName).Count() > 0)
-                {
-                    SourceFiles.Remove(SourceFiles.Where(x => x.originalFullName == f.originalFullName).First());
-                }
-                ConstructName(f);               
-                SourceFiles.Add(f);
-            }
-        }
-
-        private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            ListView_SelectionChangedRun();
-        }
-        private void ListView_SelectionChangedRun()
-        {
-            if (listView.SelectedIndex == -1)
-            {
-                return;
-            }
-            var list1 = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-            if (list1.Count == 0)
-            {
-                return;
-            }
-            List<NewFileInfo> files = new List<NewFileInfo>();
-            foreach (var l in list1)
-            {
-                foreach (var f in SourceFiles)
-                {
-                    if (f.fromDirectory == l.Name)
-                    {
-                        files.Add(f);
-                    }
-                }
-            }
-            fileListView.ItemsSource = files;
-            fileListView.Items.Refresh();
-            UpdateColumnWidths();
-        }
         
-
-        private void ChangeMovieOutputDir(object sender, RoutedEventArgs e)
-        {
-            ChangeOutputDir(MovieType);
-        }
-
-        private void ChangeMusicVidOutputDir(object sender, RoutedEventArgs e)
-        {
-            ChangeOutputDir(MusicVideoType);
-        }
-        private void ChangeOutputDir(int type)
-        {
-            var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
-            if (dialog.ShowDialog() == false)
-            {
-                return;
-            }            
-            string outputDir = dialog.SelectedPath;
-            ChangeOutputDirRun(outputDir, type);
-            if (type == MovieType)
-            {
-                Properties.Settings.Default.MovieOutput = outputDir;
-            }
-            else
-            {
-                Properties.Settings.Default.MusicVidOutput = outputDir;
-            }
-            Properties.Settings.Default.Save();
-        }
-        private void ChangeOutputDirRun(string outputDir, int type)
-        {
-            if (!Directory.Exists(outputDir))
-            {
-                return;
-            }            
-            if (OutputDirs.Where(x => x.type == type).Count() > 0)
-            {
-                OutputDirs.Remove(OutputDirs.Where(x => x.type == type).First());
-            }
-            NewDirInfo temp = new NewDirInfo();
-            temp.Name = outputDir;
-            temp.type = type;
-
-            OutputDirs.Add(temp);
-            outputDirListView.ItemsSource = OutputDirs;
-            outputDirListView.Items.Refresh();
-        }
-
-        private void RemoveMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (listView.SelectedIndex >= 0)
-            {
-                var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                foreach (var list1 in listSelectedItems)
-                {                    
-                    List<NewFileInfo> fileList = new List<NewFileInfo>();
-                    fileList.AddRange(SourceFiles);
-
-                    foreach (var f in fileList)
-                    {
-                        if (f.fromDirectory == list1.Name)
-                        {
-                            SourceFiles.Remove(f);                            
-                        }
-                    }                    
-                    SourceDirsInternal.Remove(list1);
-                    SourceDirs.Remove(list1);
-                }
-                listView.ItemsSource = SourceDirs;
-                listView.Items.Refresh();
-                fileListView.ItemsSource = new Dictionary<string, string>();
-                fileListView.Items.Refresh();
-                Properties.Settings.Default.OldMusicVidsSources.Clear();
-                Properties.Settings.Default.OldMoviesSources.Clear();
-                Properties.Settings.Default.OldMoviesSources.AddRange(SourceDirsInternal.Where(x => x.type == MovieType).Select(x => x.Name).ToArray());
-                Properties.Settings.Default.OldMusicVidsSources.AddRange(SourceDirsInternal.Where(x => x.type == MusicVideoType).Select(x => x.Name).ToArray());
-                Properties.Settings.Default.Save();
-            }
-        }
-
-        private static readonly object ConsoleOutputStringLock = new object();
-
-        private void RemoveFileItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (fileListView.SelectedIndex >= 0)
-            {
-                var listSelectedItems = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-                foreach (var list1 in listSelectedItems)
-                {
-                    SourceFiles.Remove(list1);
-                }                
-                ListView_SelectionChangedRun();
-            }
-        }
-
-        private void OpenExplorerFileItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (fileListView.SelectedIndex >= 0)
-            {
-                var listSelectedItems = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-                if (listSelectedItems.Count > 0)
-                {                    
-                    OpenExplorer(listSelectedItems[0].DirectoryName);
-                }
-            }
-        }
-
-        private void OpenExplorerDirItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (listView.SelectedIndex >= 0)
-            {
-                var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                if (listSelectedItems.Count > 0)
-                {
-                    var dir = listSelectedItems[0].Name;
-                    OpenExplorer(dir);
-                }
-            }
-        }
-        private void OpenExplorer(string dir)
-        {
-            Process.Start("explorer.exe", dir);
-        }
-
-        private void OpenExplorerOutputItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (outputDirListView.SelectedIndex >= 0)
-            {
-                var listSelectedItems = outputDirListView.SelectedItems.OfType<NewDirInfo>().ToList();
-                if (listSelectedItems.Count > 0)
-                {
-                    OpenExplorer(listSelectedItems[0].Name);
-                }
-            }
-        }
-
-        string ConsoleOutputTemp = "";
-
-        private async void ProcessDirItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (listView.SelectedIndex >= 0)
-            {
-                var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                var l = listSelectedItems.Select(x => x.Name).ToList();
-                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => l.Any(x.fromDirectory.Contains)).ToList();                                
-                await Start_ClickRun(sourceFiles);
-            }
-        }
-
-        private async void ProcessFileItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (fileListView.SelectedIndex >= 0)
-            {
-                var l = fileListView.SelectedItems.OfType<NewFileInfo>().Select(x => x.FullName).ToList();
-                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => l.Any(x.FullName.Equals)).ToList();
-                await Start_ClickRun(sourceFiles);
-            }
-        }
-
-        private void SkipFileItem_Click(object sender, RoutedEventArgs e)
-        {
-            var l = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-            foreach (var f in l)
-            {
-                f._Remembered = !f._Remembered;
-            }
-            ListView_SelectionChangedRun();
-        }
-        public void UpdateColumnWidths()
-        {
-            foreach (UIElement element in UpdateGrid.Children)
-            {
-                if (element is ListView)
-                {
-                    var e = element as ListView;
-                    ListViewTargetUpdated(e);
-                }
-            }            
-        }
-        private static void UpdateColumnWidthsRun(GridView gridView)
-        {
-            foreach (var column in gridView.Columns)
-            {
-                // If this is an "auto width" column...
-                if (double.IsNaN(column.Width))
-                {
-                    // Set its Width back to NaN to auto-size again
-                    column.Width = 0;
-                    column.Width = double.NaN;
-                }
-            }
-        }
-        private void ListViewTargetUpdated(ListView listView)
-        {
-            // Get a reference to the ListView's GridView...        
-            if (null != listView)
-            {
-                var gridView = listView.View as GridView;
-                if (null != gridView)
-                {
-                    // ... and update its column widths
-                    UpdateColumnWidthsRun(gridView);
-                }
-            }
-        }
-
-        private async void Reload_Click(object sender, RoutedEventArgs e)
-        {
-            var dirs = SourceDirs.ToList();
-            SourceDirs.Clear();
-            SourceDirsInternal.Clear();
-            foreach (var d in dirs)
-            {
-                await Task.Run(() => { GotSourceDir(d.Name, d.type); });
-            }
-            await DirReport();
-        }
 
         static SemaphoreSlim semaphoreSlimCO = new SemaphoreSlim(1, 1);
         static SemaphoreSlim semaphoreSlimC2 = new SemaphoreSlim(1, 1);
+        string ConsoleOutputTemp = "";
         private async Task PrintToConsoleOutputBG(string str)
         {
             await semaphoreSlimC2.WaitAsync();
