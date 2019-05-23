@@ -57,7 +57,7 @@
                     <ColumnDefinition Width="auto" MaxWidth="162"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Grid.Row="0">
+                <StackPanel Name="stackPanel" Grid.Column="0" Grid.Row="0">
                     <Button Content="  Add Movies Folder" HorizontalAlignment="Left" Click="AddMoviesDir_Click" Width="auto" Height="20"/>
                     <Button Content="  Movies Output Folder " HorizontalAlignment="Left" Click="ChangeMovieOutputDir" Width="auto" Height="20"/>
                     <Button Content="  Add Music Videos Folder " HorizontalAlignment="Left" Click="AddMusicVideosDir_Click" Width="auto" Height="20"/>

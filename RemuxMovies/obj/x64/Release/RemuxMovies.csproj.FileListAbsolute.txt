@@ -57,4 +57,3 @@ C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Microsoft.Wi
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.dll
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.pdb
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.xml
-C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csprojAssemblyReference.cache

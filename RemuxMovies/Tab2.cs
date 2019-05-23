@@ -35,7 +35,6 @@ namespace RemuxMovies
         }
 
         List<NewDirInfo> SourceDirs = new List<NewDirInfo>();
-        List<NewDirInfo> SourceDirsInternal = new List<NewDirInfo>();
         List<NewFileInfo> SourceFiles = new List<NewFileInfo>();
         List<NewDirInfo> OutputDirs = new List<NewDirInfo>();
 
@@ -174,9 +173,13 @@ namespace RemuxMovies
             {
                 Properties.Settings.Default.MovieOutput = outputDir;
             }
-            else
+            else if (type == MusicVideoType)
             {
                 Properties.Settings.Default.MusicVidOutput = outputDir;
+            }
+            else if (type == TVShowsType)
+            {
+                Properties.Settings.Default.TVShowsOutput = outputDir;
             }
             Properties.Settings.Default.Save();
         }
@@ -361,7 +364,6 @@ namespace RemuxMovies
         {
             var dirs = SourceDirs.ToList();
             SourceDirs.Clear();
-            SourceDirsInternal.Clear();
             foreach (var d in dirs)
             {
                 await Task.Run(() => { GotSourceDir(d.Name, d.type); });

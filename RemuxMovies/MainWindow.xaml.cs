@@ -41,9 +41,9 @@ namespace RemuxMovies
         };
         readonly Regex[] TVShowRegex = new Regex[]
         {
-            new Regex(@"\.S\d{2,3}E\d{2,3}\.", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"\sS\d{2,3}E\d{2,3}\s", RegexOptions.Compiled | RegexOptions.IgnoreCase),
-            new Regex(@"-S\d{2,3}E\d{2,3}-", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"\.S\d{1,3}E\d{1,3}\.", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"\sS\d{1,3}E\d{1,3}\s", RegexOptions.Compiled | RegexOptions.IgnoreCase),
+            new Regex(@"-S\d{1,3}E\d{1,3}-", RegexOptions.Compiled | RegexOptions.IgnoreCase),
         };
 
         const int MovieType = 0;
@@ -130,10 +130,8 @@ namespace RemuxMovies
                 return;
             }
             tabControl.SelectedIndex = 0;
-            StartButton.IsEnabled = false;
-            MakeNfosButton.IsEnabled = false;
-            ReloadButton.IsEnabled = false;
-            TabDirs.IsEnabled = false;
+            ToggleButtons(false);
+            
             ConsoleOutputString.Clear();
             AppOutput.Document.Blocks.Clear();
             if (forceCheckBox.IsChecked == true)
@@ -146,11 +144,17 @@ namespace RemuxMovies
                 forceAll = false;
             }
             await Task.Run(() => ProcessVideo(sourceFiles));
-            TabDirs.IsEnabled = true;
-            StartButton.IsEnabled = true;
-            MakeNfosButton.IsEnabled = true;
-            ReloadButton.IsEnabled = true;
+
+            ToggleButtons(true);
             Interlocked.Exchange(ref oneInt, 0);
+        }
+
+        private void ToggleButtons(bool t)
+        {
+            StartButton.IsEnabled = t;
+            MakeNfosButton.IsEnabled = t;
+            ReloadButton.IsEnabled = t;
+            stackPanel.IsEnabled = t;
         }
         private async void MakeNfos_Click(object sender, RoutedEventArgs e)
         {
@@ -487,8 +491,8 @@ namespace RemuxMovies
 
             if (TVShowM.Success)
             {
-                file.destPath = file.Name.Substring(0, TVShowM.Index);                
-                file.destName = file.Name;  // TVShowS03E02.mkv -> OutputDir\TVShow\TVShowS03E02.mkv per Kodi guidelines for TV Shows.                
+                file.destPath = file.originalName.Substring(0, TVShowM.Index);                
+                file.destName = file.originalName;                                // TVShowS03E02.mkv -> OutputDir\TVShow\TVShowS03E02.mkv per Kodi guidelines for TV Shows.                
                 return;
             }
 
