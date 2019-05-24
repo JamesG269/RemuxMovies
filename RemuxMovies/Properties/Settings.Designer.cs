@@ -51,70 +51,23 @@ namespace RemuxMovies.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.Collections.Specialized.StringCollection OldMusicVidsSources {
+        public global::System.Collections.Specialized.StringCollection VidSources {
             get {
-                return ((global::System.Collections.Specialized.StringCollection)(this["OldMusicVidsSources"]));
+                return ((global::System.Collections.Specialized.StringCollection)(this["VidSources"]));
             }
             set {
-                this["OldMusicVidsSources"] = value;
+                this["VidSources"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.Collections.Specialized.StringCollection OldMoviesSources {
+        public global::System.Collections.Specialized.StringCollection VidOutputs {
             get {
-                return ((global::System.Collections.Specialized.StringCollection)(this["OldMoviesSources"]));
+                return ((global::System.Collections.Specialized.StringCollection)(this["VidOutputs"]));
             }
             set {
-                this["OldMoviesSources"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string MusicVidOutput {
-            get {
-                return ((string)(this["MusicVidOutput"]));
-            }
-            set {
-                this["MusicVidOutput"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string MovieOutput {
-            get {
-                return ((string)(this["MovieOutput"]));
-            }
-            set {
-                this["MovieOutput"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.Collections.Specialized.StringCollection OldTVShowsSources {
-            get {
-                return ((global::System.Collections.Specialized.StringCollection)(this["OldTVShowsSources"]));
-            }
-            set {
-                this["OldTVShowsSources"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string TVShowsOutput {
-            get {
-                return ((string)(this["TVShowsOutput"]));
-            }
-            set {
-                this["TVShowsOutput"] = value;
+                this["VidOutputs"] = value;
             }
         }
     }

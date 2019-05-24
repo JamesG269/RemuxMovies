@@ -58,7 +58,6 @@ namespace RemuxMovies
         public MainWindow()
         {
             InitializeComponent();
-
         }
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -70,45 +69,48 @@ namespace RemuxMovies
             {
                 MessageBox.Show("First run, directories cleared.");
                 Properties.Settings.Default.OldMovies = new System.Collections.Specialized.StringCollection();
-                Properties.Settings.Default.OldMoviesSources = new System.Collections.Specialized.StringCollection();
-                Properties.Settings.Default.OldMusicVidsSources = new System.Collections.Specialized.StringCollection();
-                Properties.Settings.Default.OldTVShowsSources = new System.Collections.Specialized.StringCollection();
-
+                Properties.Settings.Default.VidSources = new System.Collections.Specialized.StringCollection();
+                Properties.Settings.Default.VidOutputs = new System.Collections.Specialized.StringCollection();
                 Properties.Settings.Default.FirstRun = false;
                 Properties.Settings.Default.Save();
                 Properties.Settings.Default.Reload();
             }
             await PrintToAppOutputBG("Loading previously saved directories and files ... ", 0, 2);
-            await LoadDirs();                        
+            await LoadDirs();
             tabControl.IsEnabled = true;
         }
         private async Task LoadDirs()
         {
-            foreach (var d in Properties.Settings.Default.OldMoviesSources)
+            var sources = Properties.Settings.Default.VidSources;
+            if (sources.Count > 0 && (sources.Count % 2) == 0)
             {
-                await GotSourceDirRun(d, MovieType);
+                for (int i = 0; i < sources.Count; i += 2)
+                {
+                    int type;
+                    bool isInt = int.TryParse(sources[i], out type);
+                    if (isInt != true)
+                    {
+                        continue;
+                    }
+                    string dir = sources[i + 1];
+                    await GotSourceDirRun(dir, type);
+                }
             }
-            foreach (var d in Properties.Settings.Default.OldMusicVidsSources)
+            var outputs = Properties.Settings.Default.VidOutputs;
+            if (outputs.Count > 0 && (outputs.Count % 2) == 0)
             {
-                await GotSourceDirRun(d, MusicVideoType);
+                for (int i = 0; i < outputs.Count; i += 2)
+                {
+                    int type;
+                    bool isInt = int.TryParse(outputs[i], out type);
+                    if (isInt != true)
+                    {
+                        continue;
+                    }
+                    string dir = outputs[i + 1];
+                    ChangeOutputDirRun(dir, type);
+                }
             }
-            foreach (var d in Properties.Settings.Default.OldTVShowsSources)
-            {
-                await GotSourceDirRun(d, TVShowsType);
-            }
-            if (Directory.Exists(Properties.Settings.Default.MovieOutput))
-            {
-                ChangeOutputDirRun(Properties.Settings.Default.MovieOutput, MovieType);
-            }
-            if (Directory.Exists(Properties.Settings.Default.MusicVidOutput))
-            {
-                ChangeOutputDirRun(Properties.Settings.Default.MusicVidOutput, MusicVideoType);
-            }
-            if (Directory.Exists(Properties.Settings.Default.MusicVidOutput))
-            {
-                ChangeOutputDirRun(Properties.Settings.Default.TVShowsOutput, TVShowsType);
-            }
-
             await DirReport();
         }
 
@@ -120,18 +122,19 @@ namespace RemuxMovies
         }
 
         private async void Start_Click(object sender, RoutedEventArgs e)
-        {                 
-            await Start_ClickRun(SourceFiles);
-        }
-        private async Task Start_ClickRun(List<NewFileInfo> sourceFiles)
-        { 
+        {
             if (0 != Interlocked.Exchange(ref oneInt, 1))
             {
                 return;
             }
+            await Start_ClickRun(SourceFiles);
+            Interlocked.Exchange(ref oneInt, 0);
+        }
+        private async Task Start_ClickRun(List<NewFileInfo> sourceFiles)
+        {
+
             tabControl.SelectedIndex = 0;
             ToggleButtons(false);
-            
             ConsoleOutputString.Clear();
             AppOutput.Document.Blocks.Clear();
             if (forceCheckBox.IsChecked == true)
@@ -144,9 +147,7 @@ namespace RemuxMovies
                 forceAll = false;
             }
             await Task.Run(() => ProcessVideo(sourceFiles));
-
             ToggleButtons(true);
-            Interlocked.Exchange(ref oneInt, 0);
         }
 
         private void ToggleButtons(bool t)
@@ -164,21 +165,24 @@ namespace RemuxMovies
             }
             MakeNfosButton.IsEnabled = false;
             StartButton.IsEnabled = false;
-            await Task.Run(() => ProcessNfo());
-            Interlocked.Exchange(ref oneInt, 0);
+            if (OutputDirs.Where(x => x.type == MusicVideoType).Count() != 0)
+            {
+                await Task.Run(() => ProcessNfo());
+            }
             MakeNfosButton.IsEnabled = true;
             StartButton.IsEnabled = true;
+            Interlocked.Exchange(ref oneInt, 0);
         }
         private async Task ProcessNfo()
         {
             AbortProcessing = false;
             GetFiles_Cancel = false;
-            if (OutputDirs.Where(x => x.type == MusicVideoType).Count() == 0)
+            nfoList = new List<NewFileInfo>();
+            nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, "*.mkv;")));
+            if (nfoList.Count == 0)
             {
                 return;
             }
-            nfoList = new List<NewFileInfo>();
-            nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MusicVideoType).First().Name , "*.mkv")));
             await PrintToAppOutputBG(nfoList.Count + ".nfo files need to be created.", 0, 1);
             int num = 0;
             await PrintToAppOutputBG("Creating .nfo files", 0, 1);
@@ -200,7 +204,7 @@ namespace RemuxMovies
 
         public int oneInt = 0;
 
-        private async Task ProcessVideo(List<NewFileInfo>sourceFiles)
+        private async Task ProcessVideo(List<NewFileInfo> sourceFiles)
         {
             ErroredList = new List<string>();
             SuccessList = new Dictionary<string, string>();
@@ -209,11 +213,9 @@ namespace RemuxMovies
             UnusualList = new List<string>();
             GetFiles_Cancel = false;
             AbortProcessing = false;
-            
-            
+
             Properties.Settings.Default.Reload();
 
-            
             foreach (var file in sourceFiles)
             {
                 await PrintToAppOutputBG(file.originalFullName, 0, 1);
@@ -227,13 +229,13 @@ namespace RemuxMovies
                     AbortProcessing = false;
                     break;
                 }
-                num++;                                
+                num++;
                 if (OutputDirs.Where(x => x.type == file.type).Count() == 0)
                 {
-                    await PrintToAppOutputBG("Output directory not set for " + (file.type == MovieType ? "Movies" : "Music Videos"), 0, 1, "red");
+                    await PrintToAppOutputBG("Output directory not set for " + file.FriendlyType, 0, 1, "red");
                     ErroredList.Add(file.originalFullName);
                     continue;
-                }                
+                }
                 if (file.type == MusicVideoType)
                 {
                     await createNfo(file);
@@ -244,7 +246,7 @@ namespace RemuxMovies
                     await PrintToAppOutputBG($"Video {num} of {SourceFiles.Count} already processed:", 0, 1);
                     await PrintToAppOutputBG(file.originalFullName, 0, 1);
                     SkippedList.Add(file.originalFullName);
-                    continue;                    
+                    continue;
                 }
                 await PrintToAppOutputBG($"Processing video {num} of {SourceFiles.Count}:", 0, 1);
                 await PrintToAppOutputBG(file.originalFullName, 0, 1);
@@ -254,11 +256,11 @@ namespace RemuxMovies
                 {
                     file._Remembered = true;
                     Dispatcher.Invoke(() => { fileListView.Items.Refresh(); });
-                    
+
                     if (!Properties.Settings.Default.OldMovies.Contains(file.FullName))
                     {
                         Properties.Settings.Default.OldMovies.Add(file.FullName);
-                        Properties.Settings.Default.Save();                        
+                        Properties.Settings.Default.Save();
                     }
                 }
                 else
@@ -273,7 +275,7 @@ namespace RemuxMovies
             await displayList(SuccessList, " movies processed successfully:", "lightgreen");
             await PrintToAppOutputBG("Complete!", 1, 1, "lightgreen");
             await PrintToConsoleOutputBG("Complete!");
-            System.Media.SystemSounds.Asterisk.Play();                   
+            System.Media.SystemSounds.Asterisk.Play();
         }
 
         private async Task displayList(List<string> list, string displayStr, string color)
@@ -340,7 +342,7 @@ namespace RemuxMovies
                 }
                 string destFullName = System.IO.Path.Combine(makePath, file.destName);
 
-                string parm = "-y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
+                string parm = "-threads 6 -y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
                               "-c:v " + VidMapTo + "-c:a ac3 -c:s copy " + "\"" + destFullName + "\"";
                 await PrintToAppOutputBG("FFMpeg parms: " + parm, 0, 1);
                 int ExitCode = await RunFFMpeg(parm);
@@ -361,9 +363,9 @@ namespace RemuxMovies
         }
         private async Task createNfo(NewFileInfo nfi)
         {
-            string nfo = System.IO.Path.Combine(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, nfi.destName.Substring(0, nfi.destName.Length - 4) + ".nfo");
+            string nfo = System.IO.Path.Combine(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, nfi.originalFullName.Substring(0, nfi.originalFullName.Length - 4) + ".nfo");
             try
-            {                
+            {
                 var file = File.Open(nfo, FileMode.Create);
                 string nfoStr = "<musicvideo>" + Environment.NewLine + "<title>" + nfi.destName + "</title>" + Environment.NewLine + "</musicvideo>";
                 byte[] nfoBytes = Encoding.UTF8.GetBytes(nfoStr);
@@ -407,7 +409,7 @@ namespace RemuxMovies
                     _originalName = value;
                 }
             }
-            
+
             public string originalDirectoryName;
             public long length;
             public string FullName;
@@ -427,7 +429,7 @@ namespace RemuxMovies
                 {
                     _destName = value;
                 }
-            }           
+            }
             public string Title;
             public bool _Remembered;
             public string Remembered
@@ -438,6 +440,24 @@ namespace RemuxMovies
                 }
             }
             public string destPath;
+            public string FriendlyType
+            {
+                get
+                {
+                    if (type == MovieType)
+                    {
+                        return "Movies";
+                    }
+                    else if (type == MusicVideoType)
+                    {
+                        return "Music Videos";
+                    }
+                    else
+                    {
+                        return "TV Shows";
+                    }
+                }
+            }
         }
         public class NewDirInfo
         {
@@ -482,7 +502,7 @@ namespace RemuxMovies
                     {
                         return "TV Shows";
                     }
-                }                
+                }
             }
         }
         private void ConstructName(NewFileInfo file, Match TVShowM)
@@ -491,7 +511,7 @@ namespace RemuxMovies
 
             if (TVShowM.Success)
             {
-                file.destPath = file.originalName.Substring(0, TVShowM.Index);                
+                file.destPath = file.originalName.Substring(0, TVShowM.Index);
                 file.destName = file.originalName;                                // TVShowS03E02.mkv -> OutputDir\TVShow\TVShowS03E02.mkv per Kodi guidelines for TV Shows.                
                 return;
             }
@@ -538,7 +558,7 @@ namespace RemuxMovies
                 }
             }
             destName = destName.Replace("-", ".");
-            file.destName = destName;                        
+            file.destName = destName;
         }
 
         private async Task<bool> FindAudioAndSubtitle(NewFileInfo file)
@@ -650,26 +670,26 @@ namespace RemuxMovies
             await Dispatcher.InvokeAsync(async () =>
             {
                 await PrintToAppOutputThread(str, preNewLines, postNewLines, color);
-            }, DispatcherPriority.ApplicationIdle);            
+            }, DispatcherPriority.Background);
         }
         static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
         BrushConverter bc = new BrushConverter();
-        
+
         private async Task PrintToAppOutputThread(string str, int preNewLines, int postNewLines, string color)
         {
             await semaphoreSlim.WaitAsync();
             try
-            {              
+            {
                 TextRange tr = new TextRange(AppOutput.Document.ContentEnd, AppOutput.Document.ContentEnd);
                 tr.Text = (new string('\r', preNewLines) + str + new string('\r', postNewLines));
-                tr.ApplyPropertyValue(TextElement.ForegroundProperty, bc.ConvertFromString(color));                
-                AppScroll.ScrollToEnd();                
+                tr.ApplyPropertyValue(TextElement.ForegroundProperty, bc.ConvertFromString(color));
+                AppScroll.ScrollToEnd();
             }
             finally
             {
                 semaphoreSlim.Release();
-            }            
+            }
         }
 
         int LastFrame = 0;
@@ -689,7 +709,7 @@ namespace RemuxMovies
                     await Task.Delay(10);
                 }
                 await PrintToAppOutputBG("FFMpeg process killed.", 0, 1, "red");
-            }            
+            }
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)
@@ -701,8 +721,6 @@ namespace RemuxMovies
 
         private static readonly object AppOutputStringLock = new object();
         StringBuilder ConsoleOutputString = new StringBuilder();
-
-        
 
         static SemaphoreSlim semaphoreSlimCO = new SemaphoreSlim(1, 1);
         static SemaphoreSlim semaphoreSlimC2 = new SemaphoreSlim(1, 1);
@@ -748,7 +766,7 @@ namespace RemuxMovies
                         semaphoreSlimCO.Release();
                     }
 
-                }, DispatcherPriority.ApplicationIdle);
+                }, DispatcherPriority.Background);
             }
             finally
             {
