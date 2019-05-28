@@ -21,6 +21,8 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Xml;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Enums;
 
 namespace RemuxMovies
 {
@@ -49,6 +51,13 @@ namespace RemuxMovies
         const int MovieType = 0;
         const int MusicVideoType = 1;
         const int TVShowsType = 2;
+        public static Dictionary<int, string> types = new Dictionary<int, string>()
+        {
+            {MovieType, "Movies" },
+            {MusicVideoType, "Music Videos"},
+            {TVShowsType, "TV Shows"}
+        };
+            
         List<string> ErroredList;
         Dictionary<string, string> SuccessList;
         List<string> NoAudioList;
@@ -61,23 +70,34 @@ namespace RemuxMovies
         }
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            
             await PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " +
                 "convert first English audio to .ac3 and remove all other audio " +
                 "and non-English subtitles. Written by James Gentile.", 0, 2);
             await PrintToAppOutputBG(Properties.Settings.Default.OldMovies.Count + " movies remembered.", 0, 2);
             if (Properties.Settings.Default.FirstRun == true)
             {
-                MessageBox.Show("First run, directories cleared.");
+                MessageBox.Show("First run, saved directories list cleared.");
                 Properties.Settings.Default.OldMovies = new System.Collections.Specialized.StringCollection();
                 Properties.Settings.Default.VidSources = new System.Collections.Specialized.StringCollection();
                 Properties.Settings.Default.VidOutputs = new System.Collections.Specialized.StringCollection();
                 Properties.Settings.Default.FirstRun = false;
                 Properties.Settings.Default.Save();
                 Properties.Settings.Default.Reload();
-            }
-            await PrintToAppOutputBG("Loading previously saved directories and files ... ", 0, 2);
+            }            
             await LoadDirs();
+            
+            await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.",0,1);
+            FFmpeg.ExecutablesPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FFmpeg");
+            var ffmpegDir = System.IO.Path.Combine(FFmpeg.ExecutablesPath, "ffmpeg.exe");
+            await FFmpeg.GetLatestVersion();
+            if (!File.Exists(ffmpegDir))
+            {
+                MessageBox.Show("FFMpeg/FFProbe not found at: " + ffmpegDir);
+                Close();
+            }
             tabControl.IsEnabled = true;
+            await PrintToAppOutputBG("Ready. ", 0, 2, "green");
         }
         private async Task LoadDirs()
         {
@@ -111,14 +131,28 @@ namespace RemuxMovies
                     ChangeOutputDirRun(dir, type);
                 }
             }
-            await DirReport();
+            //await DirReport();
+            populateInfoLabel();
+        }
+        private void populateInfoLabel()
+        {
+            int movs = SourceFiles.Where(c => c.type == MovieType && ((c._Remembered & !forceAll) == false)).Count();
+            int musicvideos = SourceFiles.Where(c => c.type == MusicVideoType && ((c._Remembered & !forceAll) == false)).Count();
+            int tvshows = SourceFiles.Where(c => c.type == TVShowsType && ((c._Remembered & !forceAll) == false)).Count();
+            infoLabel.Content = $"{movs} Movies ready to process." + Environment.NewLine +
+                                $"{musicvideos} Music Videos ready to process." + Environment.NewLine +
+                                $"{tvshows} TV Shows ready to process.";
         }
 
         private async Task DirReport()
         {
-            await PrintToAppOutputBG($"{SourceDirs.Where(x => x.type == MovieType).Count()} Movie directories containing {SourceFiles.Where(x => x.type == MovieType && x._Remembered == false).Count()} new movies found.", 0, 1);
-            await PrintToAppOutputBG($"{SourceDirs.Where(x => x.type == MusicVideoType).Count()} Music Video directories containing {SourceFiles.Where(x => x.type == MusicVideoType && x._Remembered == false).Count()} new music videos found.", 0, 1);
-            await PrintToAppOutputBG($"{SourceDirs.Where(x => x.type == TVShowsType).Count()} TV Shows directories containing {SourceFiles.Where(x => x.type == TVShowsType && x._Remembered == false).Count()} new TV Shows found.", 0, 1);
+            foreach (var t in types.Keys)
+            {
+                var numDirs = SourceDirs.Where(x => x.type == t).Count();
+                var numFiles = SourceFiles.Where(x => x.type == t && x._Remembered == false).Count();
+            
+                await PrintToAppOutputBG($"{numDirs} directories found containing {numFiles} new {types[t]} found.", 0, 1);
+            }
         }
 
         private async void Start_Click(object sender, RoutedEventArgs e)
@@ -135,17 +169,12 @@ namespace RemuxMovies
 
             tabControl.SelectedIndex = 0;
             ToggleButtons(false);
-            ConsoleOutputString.Clear();
+            ConsoleOutput.Clear();
             AppOutput.Document.Blocks.Clear();
-            if (forceCheckBox.IsChecked == true)
-            {
-                forceAll = true;
+            if (forceAll == true)
+            {                
                 await PrintToAppOutputBG("Force mode, ignoring remembered movies.", 0, 2);
-            }
-            else
-            {
-                forceAll = false;
-            }
+            }            
             await Task.Run(() => ProcessVideo(sourceFiles));
             ToggleButtons(true);
         }
@@ -157,242 +186,8 @@ namespace RemuxMovies
             ReloadButton.IsEnabled = t;
             stackPanel.IsEnabled = t;
         }
-        private async void MakeNfos_Click(object sender, RoutedEventArgs e)
-        {
-            if (0 != Interlocked.Exchange(ref oneInt, 1))
-            {
-                return;
-            }
-            MakeNfosButton.IsEnabled = false;
-            StartButton.IsEnabled = false;
-            if (OutputDirs.Where(x => x.type == MusicVideoType).Count() != 0)
-            {
-                await Task.Run(() => ProcessNfo());
-            }
-            MakeNfosButton.IsEnabled = true;
-            StartButton.IsEnabled = true;
-            Interlocked.Exchange(ref oneInt, 0);
-        }
-        private async Task ProcessNfo()
-        {
-            AbortProcessing = false;
-            GetFiles_Cancel = false;
-            nfoList = new List<NewFileInfo>();
-            nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, "*.mkv;")));
-            if (nfoList.Count == 0)
-            {
-                return;
-            }
-            await PrintToAppOutputBG(nfoList.Count + ".nfo files need to be created.", 0, 1);
-            int num = 0;
-            await PrintToAppOutputBG("Creating .nfo files", 0, 1);
-            foreach (var file in nfoList)
-            {
-                if (AbortProcessing == true)
-                {
-                    await PrintToAppOutputBG("Nfo creation aborted!", 0, 1, "red");
-                    AbortProcessing = false;
-                    GetFiles_Cancel = false;
-                    break;
-                }
-                num++;
-                await createNfo(file);
-            }
-            await PrintToAppOutputBG(num + " .nfo files created.", 0, 1, "green");
-            System.Media.SystemSounds.Asterisk.Play();
-        }
-
+        
         public int oneInt = 0;
-
-        private async Task ProcessVideo(List<NewFileInfo> sourceFiles)
-        {
-            ErroredList = new List<string>();
-            SuccessList = new Dictionary<string, string>();
-            NoAudioList = new List<string>();
-            SkippedList = new List<string>();
-            UnusualList = new List<string>();
-            GetFiles_Cancel = false;
-            AbortProcessing = false;
-
-            Properties.Settings.Default.Reload();
-
-            foreach (var file in sourceFiles)
-            {
-                await PrintToAppOutputBG(file.originalFullName, 0, 1);
-            }
-            await PrintToAppOutputBG(" ", 0, 1);
-            int num = 0;
-            foreach (var file in sourceFiles)
-            {
-                if (AbortProcessing == true)
-                {
-                    AbortProcessing = false;
-                    break;
-                }
-                num++;
-                if (OutputDirs.Where(x => x.type == file.type).Count() == 0)
-                {
-                    await PrintToAppOutputBG("Output directory not set for " + file.FriendlyType, 0, 1, "red");
-                    ErroredList.Add(file.originalFullName);
-                    continue;
-                }
-                if (file.type == MusicVideoType)
-                {
-                    await createNfo(file);
-                }
-
-                if (forceAll == false && file._Remembered == true)
-                {
-                    await PrintToAppOutputBG($"Video {num} of {SourceFiles.Count} already processed:", 0, 1);
-                    await PrintToAppOutputBG(file.originalFullName, 0, 1);
-                    SkippedList.Add(file.originalFullName);
-                    continue;
-                }
-                await PrintToAppOutputBG($"Processing video {num} of {SourceFiles.Count}:", 0, 1);
-                await PrintToAppOutputBG(file.originalFullName, 0, 1);
-                await PrintToAppOutputBG($"Size: {file.length.ToString("N0")} bytes.", 0, 2);
-                bool ret = await processFile(file);
-                if (ret)
-                {
-                    file._Remembered = true;
-                    Dispatcher.Invoke(() => { fileListView.Items.Refresh(); });
-
-                    if (!Properties.Settings.Default.OldMovies.Contains(file.FullName))
-                    {
-                        Properties.Settings.Default.OldMovies.Add(file.FullName);
-                        Properties.Settings.Default.Save();
-                    }
-                }
-                else
-                {
-                    ErroredList.Add(file.originalFullName);
-                }
-            }
-            await displayList(SkippedList, " movies skipped:", "white");
-            await displayList(ErroredList, " movies with errors:", "red");
-            await displayList(NoAudioList, " movies with no audio:", "red");
-            await displayList(UnusualList, " movies with unusal aspects:", "yellow");
-            await displayList(SuccessList, " movies processed successfully:", "lightgreen");
-            await PrintToAppOutputBG("Complete!", 1, 1, "lightgreen");
-            await PrintToConsoleOutputBG("Complete!");
-            System.Media.SystemSounds.Asterisk.Play();
-        }
-
-        private async Task displayList(List<string> list, string displayStr, string color)
-        {
-            await PrintToAppOutputBG(list.Count + displayStr, 1, 1, list.Count == 0 ? "White" : color);
-            foreach (var file in list.Distinct())
-            {
-                await PrintToAppOutputBG(file, 0, 1, color);
-            }
-        }
-        private async Task displayList(Dictionary<string, string> list, string displayStr, string color)
-        {
-            await PrintToAppOutputBG(list.Count + displayStr, 1, 1, list.Count == 0 ? "White" : color);
-            foreach (var file in list)
-            {
-                await PrintToAppOutputBG(file.Key + " -> " + file.Value, 0, 1, color);
-            }
-        }
-        private async Task<bool> processFile(NewFileInfo file)
-        {
-            try
-            {
-                JsonFFProbe.Clear();
-
-                int exitCode = await RunFFProbe(file.originalFullName);
-                if (exitCode != 0)
-                {
-                    await PrintToAppOutputBG("Error, ffprobe return error code: " + exitCode, 0, 1, "red");
-                    return false;
-                }
-                if (JsonFFProbe.Length == 0)
-                {
-                    await PrintToAppOutputBG("FFProbe returned nothing: " + file.originalFullName, 0, 1);
-                    return false;
-                }
-                string jsonlen = JsonFFProbe.Length.ToString("N0");
-                await PrintToAppOutputBG($"Received Json data from FFProbe.exe ({jsonlen} bytes) ...", 0, 1);
-                json = JsonValue.Parse(JsonFFProbe.ToString().ToLower());
-
-                bool FindAudioRet = await FindAudioAndSubtitle(file);
-                if (FindAudioRet == false)
-                {
-                    await PrintToAppOutputBG("Error, No English Audio Found!", 0, 1, "red");
-                    NoAudioList.Add(file.originalFullName);
-                    return false;
-                }
-                await PrintToAppOutputBG("Video mapping: " + VidMap, 0, 1);
-                await PrintToAppOutputBG("Video destination: " + VidMapTo, 0, 1);
-                await PrintToAppOutputBG("Audio mapping: " + AudioMap, 0, 1);
-                await PrintToAppOutputBG("Subtitle mapping: " + SubMap, 0, 1);
-
-                if (OutputDirs.Where(x => x.type == file.type).Count() == 0)
-                {
-                    return false;
-                }
-                string makePath = OutputDirs.Where(x => x.type == file.type).First().Name;
-                if (file.type == TVShowsType)
-                {
-                    makePath = System.IO.Path.Combine(makePath, file.destPath);
-                    if (!Directory.Exists(makePath))
-                    {
-                        Directory.CreateDirectory(makePath);
-                    }
-                }
-                string destFullName = System.IO.Path.Combine(makePath, file.destName);
-
-                string parm = "-threads 6 -y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
-                              "-c:v " + VidMapTo + "-c:a ac3 -c:s copy " + "\"" + destFullName + "\"";
-                await PrintToAppOutputBG("FFMpeg parms: " + parm, 0, 1);
-                int ExitCode = await RunFFMpeg(parm);
-                if (ExitCode != 0)
-                {
-                    await PrintToAppOutputBG("FFMpeg had a possible problem, exit code: " + ExitCode, 0, 1, "red");
-                    return false;
-                }
-
-                SuccessList.Add(file.originalFullName, file.destName);
-                return true;
-            }
-            catch (Exception e)
-            {
-                await PrintToAppOutputBG("Something in processFile() has caused an exception: " + e.InnerException.Message, 0, 1, "red");
-                return false;
-            }
-        }
-        private async Task createNfo(NewFileInfo nfi)
-        {
-            string nfo = System.IO.Path.Combine(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, nfi.originalFullName.Substring(0, nfi.originalFullName.Length - 4) + ".nfo");
-            try
-            {
-                var file = File.Open(nfo, FileMode.Create);
-                string nfoStr = "<musicvideo>" + Environment.NewLine + "<title>" + nfi.destName + "</title>" + Environment.NewLine + "</musicvideo>";
-                byte[] nfoBytes = Encoding.UTF8.GetBytes(nfoStr);
-
-                file.Write(nfoBytes, 0, nfoBytes.Length);
-                file.Close();
-                file.Dispose();
-                if (file != null)
-                {
-                    file = null;
-                }
-                if (File.Exists(nfo))
-                {
-                    await PrintToAppOutputBG("Music video .nfo file created: " + nfo, 0, 1);
-                }
-                else
-                {
-                    await PrintToAppOutputBG("Music Video .nfo file could not be created.", 0, 1, "red");
-                    ErroredList.Add(nfo);
-                }
-            }
-            catch (Exception e)
-            {
-                await PrintToAppOutputBG("Exception thrown in createNfo(): " + e.InnerException.Message, 0, 1, "Red");
-                ErroredList.Add(nfo);
-            }
-        }
 
         public class NewFileInfo
         {
@@ -416,8 +211,7 @@ namespace RemuxMovies
             public string Name;
             public string DirectoryName;
             public string fromDirectory;
-            public int type; // movies = 0; musicvideos = 1
-            public bool process = true;
+            public int type; // movies = 0; musicvideos = 1; TV Shows = 2            
             private string _destName;
             public string destName
             {
@@ -430,7 +224,7 @@ namespace RemuxMovies
                     _destName = value;
                 }
             }
-            public string Title;
+            
             public bool _Remembered;
             public string Remembered
             {
@@ -444,18 +238,7 @@ namespace RemuxMovies
             {
                 get
                 {
-                    if (type == MovieType)
-                    {
-                        return "Movies";
-                    }
-                    else if (type == MusicVideoType)
-                    {
-                        return "Music Videos";
-                    }
-                    else
-                    {
-                        return "TV Shows";
-                    }
+                    return types[type];
                 }
             }
         }
@@ -490,18 +273,7 @@ namespace RemuxMovies
             {
                 get
                 {
-                    if (type == MovieType)
-                    {
-                        return "Movies";
-                    }
-                    else if (type == MusicVideoType)
-                    {
-                        return "Music Videos";
-                    }
-                    else
-                    {
-                        return "TV Shows";
-                    }
+                    return types[_type];
                 }
             }
         }
@@ -561,110 +333,6 @@ namespace RemuxMovies
             file.destName = destName;
         }
 
-        private async Task<bool> FindAudioAndSubtitle(NewFileInfo file)
-        {
-            bool foundAudio = false;
-            AudioMap = "";
-            SubMap = "";
-            VidMap = "-map 0:v ";
-            VidMapTo = "copy ";
-            if (!json.ContainsKey("streams"))
-            {
-                await PrintToAppOutputBG("Malformed movie data: No streams: " + file.originalFullName, 0, 1, "red");
-                return false;
-            }
-            var streams = json["streams"];
-            int VidNum = 0, AudNum = 0, SubNum = 0;
-            for (int x = 0; x < streams.Count; x++)
-            {
-                if (!streams[x].ContainsKey("index"))
-                {
-                    await PrintToAppOutputBG("Malformed movie data: No index in json element: " + x, 0, 1, "yellow");
-                    UnusualList.Add(file.originalFullName);
-                    continue;
-                }
-                if (!streams[x].ContainsKey("codec_type"))
-                {
-                    await PrintToAppOutputBG("Malformed movie data: No codec_type in json element: " + x, 0, 1, "yellow");
-                    UnusualList.Add(file.originalFullName);
-                    continue;
-                }
-                string codectype = JsonValue.Parse(streams[x]["codec_type"].ToString());
-                int index = JsonValue.Parse(streams[x]["index"].ToString());
-                switch (codectype)
-                {
-                    case "video":
-                        if (streams[x].ContainsKey("codec_name") && streams[x]["codec_name"] == "vc1")
-                        {
-                            VidMap = "-map 0:" + index + " ";
-                            VidMapTo = "libx264 ";
-                            await PrintToAppOutputBG("Video is VC-1, converting to x264.", 0, 1, "yellow");
-                        }
-                        VidNum++;
-                        break;
-                    case "audio":
-                        AudNum++;
-                        if (foundAudio == true)
-                        {
-                            continue;
-                        }
-                        // Find first audio track that is english or unspecified language, which is usually english.
-
-                        if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("language"))
-                        {
-                            var language = streams[x]["tags"]["language"];
-                            await PrintToAppOutputBG("Language in movie == " + language, 0, 1, "yellow");
-                            if (!(language == "eng"))
-                            {
-                                if (language == null || language == "" || language == "und")
-                                {
-                                    await PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index, 0, 1, "yellow");
-                                    UnusualList.Add(file.originalFullName);
-                                }
-                                else
-                                {
-                                    continue;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            await PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index, 0, 1, "yellow");
-                            UnusualList.Add(file.originalFullName);             // no tags or language in tags, probably english.
-                        }
-                        if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("title"))
-                        {
-                            if (streams[x]["tags"]["title"].ToString().ToLower().Contains("commentary"))
-                            {
-                                await PrintToAppOutputBG("Unusual movie, commentary is before audio track, index #" + index, 0, 1, "yellow");
-                                UnusualList.Add(file.originalFullName);
-                                continue;
-                            }
-                        }
-                        AudioMap = "-map 0:" + index + " ";
-                        foundAudio = true;
-                        break;
-                    case "subtitle":
-                        SubNum++;
-                        if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("language"))
-                        {
-                            var language = streams[x]["tags"]["language"];
-                            if (language != null && language == "eng")
-                            {
-                                SubMap += "-map 0:" + index + " ";
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-            await PrintToAppOutputBG("Number of Video streams: " + VidNum, 0, 1);
-            await PrintToAppOutputBG("Number of Audio streams: " + AudNum, 0, 1);
-            await PrintToAppOutputBG("Number of Subtitle streams: " + SubNum, 0, 1);
-            return foundAudio;
-        }
-
         private async Task PrintToAppOutputBG(string str, int preNewLines, int postNewLines, string color = "White")
         {
             await Dispatcher.InvokeAsync(async () =>
@@ -702,7 +370,7 @@ namespace RemuxMovies
             if (FFMpegProcess != null && FFMpegProcess.HasExited != true)
             {
                 FFMpegProcess.CancelErrorRead();
-                FFMpegProcess.CancelErrorRead();
+                FFMpegProcess.CancelOutputRead();
                 FFMpegProcess.Kill();
                 while (FFMpegProcess != null && FFMpegProcess.HasExited != true)
                 {
@@ -714,59 +382,52 @@ namespace RemuxMovies
 
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            AppOutput.Document.Blocks.Clear();
-            ConsoleOutputString.Clear();
+            AppOutput.Document.Blocks.Clear();            
             ConsoleOutput.Clear();
         }
 
         private static readonly object AppOutputStringLock = new object();
-        StringBuilder ConsoleOutputString = new StringBuilder();
+
+        private void ForceCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            forceAll = forceCheckBox.IsChecked.Value;
+            populateInfoLabel();
+        }
 
         static SemaphoreSlim semaphoreSlimCO = new SemaphoreSlim(1, 1);
         static SemaphoreSlim semaphoreSlimC2 = new SemaphoreSlim(1, 1);
-        string ConsoleOutputTemp = "";
-        private async Task PrintToConsoleOutputBG(string str)
+        private void PrintToConsoleOutputBG(string str)
         {
-            await semaphoreSlimC2.WaitAsync();
+            semaphoreSlimC2.Wait();
             try
-            {
-                if (FrameFound == true)
-                {
-                    if (ConsoleOutputString.Length > LastFrame)
+            {                
+                int ret = Dispatcher.Invoke(() =>
+                {                    
+                    if (FrameFound == true)
                     {
-                        ConsoleOutputString = ConsoleOutputString.Remove(LastFrame, ConsoleOutputString.Length - LastFrame);
-                    }
-                    FrameFound = false;
-                }
-                if (str.StartsWith("frame="))
-                {
-                    LastFrame = ConsoleOutputString.Length;
-                    FrameFound = true;
-                    ConsoleOutputString.Append(str);
-                }
-                else
-                {
-                    ConsoleOutputString.Append(str + Environment.NewLine);
-                }
-                ConsoleOutputTemp = ConsoleOutputString.ToString();
-
-                await Dispatcher.InvokeAsync(async () =>
-                {
-                    await semaphoreSlimCO.WaitAsync();
-                    try
-                    {
-                        ConsoleOutput.Text = ConsoleOutputTemp;
-                        if (FrameFound == false)
+                        if (ConsoleOutput.Text.Length > LastFrame)
                         {
-                            ConsoleScroll.ScrollToEnd();
+                            ConsoleOutput.Text = ConsoleOutput.Text.Substring(0,LastFrame);
                         }
+                        FrameFound = false;
                     }
-                    finally
+                    if (str.StartsWith("frame="))
                     {
-                        semaphoreSlimCO.Release();
+                        LastFrame = ConsoleOutput.Text.Length;
+                        FrameFound = true;
+                        ConsoleOutput.Text += str;
                     }
-
-                }, DispatcherPriority.Background);
+                    else
+                    {
+                        ConsoleOutput.Text += str + Environment.NewLine;
+                        ConsoleScroll.ScrollToEnd();
+                    }                                      
+                    return 42;
+                });
+                if (ret != 42)
+                {
+                    MessageBox.Show("ret = " + ret);
+                }
             }
             finally
             {

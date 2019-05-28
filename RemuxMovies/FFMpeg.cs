@@ -4,7 +4,8 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Enums;
 namespace RemuxMovies
 {
     /// <summary>
@@ -15,8 +16,7 @@ namespace RemuxMovies
         Process FFMpegProcess;
         private async Task<int> RunFFMpeg(string parm)
         {
-            var path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var ffmpeg = path + @"\software\ffmpeg\bin\ffmpeg.exe";
+            var ffmpeg = Path.Combine(FFmpeg.ExecutablesPath, "ffmpeg.exe");
             if (!(File.Exists(ffmpeg)))
             {
                 await PrintToAppOutputBG("Error, no ffmpeg.exe found.", 0, 1, "red");
@@ -46,11 +46,10 @@ namespace RemuxMovies
         }
         private async Task<int> RunFFProbe(string file)
         {
-            var path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var ffprobe = path + @"\software\ffmpeg\bin\ffprobe.exe";
+            var ffprobe = Path.Combine(FFmpeg.ExecutablesPath, "ffprobe.exe");
             if (!(File.Exists(ffprobe)))
             {
-                await PrintToAppOutputBG("Error, no ffprobe.exe found at: " + path + " " + ffprobe, 0, 1, "red");
+                await PrintToAppOutputBG("Error, no ffprobe.exe found at: " + ffprobe, 0, 1, "red");
                 return -1;
             }
             var processStartInfo = new ProcessStartInfo(ffprobe, "\"" + file + "\"" + " -v quiet -print_format json -show_streams");
@@ -80,21 +79,21 @@ namespace RemuxMovies
         {
             JsonFFProbe.Append(e.Data);
         }
-        private async void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+        private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
             {
                 return;
             }
-            await PrintToConsoleOutputBG(e.Data);
+            PrintToConsoleOutputBG(e.Data);
         }
-        private async void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             if (e.Data == null)
             {
                 return;
             }
-            await PrintToConsoleOutputBG(e.Data);
+            PrintToConsoleOutputBG(e.Data);
         }
     }
 }
