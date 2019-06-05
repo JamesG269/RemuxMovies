@@ -38,6 +38,10 @@ namespace RemuxMovies
             FFMpegProcess.OutputDataReceived += Process_OutputDataReceived;
             FFMpegProcess.ErrorDataReceived += Process_ErrorDataReceived;
             FFMpegProcess.Start();
+
+            FFMpegProcess.ProcessorAffinity = (IntPtr)0x003f;
+            FFMpegProcess.PriorityClass = ProcessPriorityClass.Idle;
+
             FFMpegProcess.BeginOutputReadLine();
             FFMpegProcess.BeginErrorReadLine();
             

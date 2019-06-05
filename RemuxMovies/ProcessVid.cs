@@ -71,19 +71,22 @@ namespace RemuxMovies
 
                 if (forceAll == false && file._Remembered == true)
                 {
-                    await PrintToAppOutputBG($"Video {num} of {SourceFiles.Count} already processed:", 0, 1);
+                    await PrintToAppOutputBG($"Video {num} of {SourceFiles.Where(x => !x._Remembered || forceAll).Count()} already processed:", 0, 1);
                     await PrintToAppOutputBG(file.originalFullName, 0, 1);
                     SkippedList.Add(file.originalFullName);
                     continue;
                 }
-                await PrintToAppOutputBG($"Processing video {num} of {SourceFiles.Count}:", 0, 1);
+                await PrintToAppOutputBG($"Processing video {num} of {SourceFiles.Where(x => !x._Remembered || forceAll).Count()}:", 0, 1);
                 await PrintToAppOutputBG(file.originalFullName, 0, 1);
                 await PrintToAppOutputBG($"Size: {file.length.ToString("N0")} bytes.", 0, 2);
                 bool ret = await processFile(file);
                 if (ret)
                 {
                     file._Remembered = true;
-                    Dispatcher.Invoke(() => { fileListView.Items.Refresh(); });
+                    Dispatcher.Invoke(() => {
+                        ListViewUpdater();
+                        //fileListView.Items.Refresh();
+                    });
 
                     if (!Properties.Settings.Default.OldMovies.Contains(file.FullName))
                     {

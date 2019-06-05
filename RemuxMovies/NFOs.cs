@@ -39,7 +39,11 @@ namespace RemuxMovies
             StartButton.IsEnabled = false;
             if (OutputDirs.Where(x => x.type == MusicVideoType).Count() != 0)
             {
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
                 await Task.Run(() => ProcessNfo());
+                sw.Stop();
+                await PrintToAppOutputBG("Time (ms): " + sw.ElapsedMilliseconds, 0, 1);
             }
             MakeNfosButton.IsEnabled = true;
             StartButton.IsEnabled = true;
@@ -50,7 +54,10 @@ namespace RemuxMovies
             AbortProcessing = false;
             GetFiles_Cancel = false;
             nfoList = new List<NewFileInfo>();
-            nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, "*.mkv;")));
+            for (int i = 0; i < 10; i++)
+            {
+                nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, "*.mkv;")));
+            }
             if (nfoList.Count == 0)
             {
                 return;

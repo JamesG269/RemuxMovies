@@ -66,25 +66,19 @@ namespace RemuxMovies
 
         public MainWindow()
         {
-            InitializeComponent();
+            InitializeComponent();            
         }
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            
             await PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " +
                 "convert first English audio to .ac3 and remove all other audio " +
                 "and non-English subtitles. Written by James Gentile.", 0, 2);
             await PrintToAppOutputBG(Properties.Settings.Default.OldMovies.Count + " movies remembered.", 0, 2);
             if (Properties.Settings.Default.FirstRun == true)
             {
-                MessageBox.Show("First run, saved directories list cleared.");
-                Properties.Settings.Default.OldMovies = new System.Collections.Specialized.StringCollection();
-                Properties.Settings.Default.VidSources = new System.Collections.Specialized.StringCollection();
-                Properties.Settings.Default.VidOutputs = new System.Collections.Specialized.StringCollection();
-                Properties.Settings.Default.FirstRun = false;
-                Properties.Settings.Default.Save();
-                Properties.Settings.Default.Reload();
-            }            
+                string str = "First run, saved directories list cleared.";
+                ClearSettings(str);
+            }
             await LoadDirs();
             
             await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.",0,1);
@@ -96,9 +90,21 @@ namespace RemuxMovies
                 MessageBox.Show("FFMpeg/FFProbe not found at: " + ffmpegDir);
                 Close();
             }
-            tabControl.IsEnabled = true;
+            ToggleButtons(true);
             await PrintToAppOutputBG("Ready. ", 0, 2, "green");
         }
+
+        private static void ClearSettings(string str)
+        {
+            MessageBox.Show(str);
+            Properties.Settings.Default.OldMovies = new System.Collections.Specialized.StringCollection();
+            Properties.Settings.Default.VidSources = new System.Collections.Specialized.StringCollection();
+            Properties.Settings.Default.VidOutputs = new System.Collections.Specialized.StringCollection();
+            Properties.Settings.Default.FirstRun = false;
+            Properties.Settings.Default.Save();
+            Properties.Settings.Default.Reload();
+        }
+
         private async Task LoadDirs()
         {
             var sources = Properties.Settings.Default.VidSources;
@@ -106,11 +112,11 @@ namespace RemuxMovies
             {
                 for (int i = 0; i < sources.Count; i += 2)
                 {
-                    int type;
-                    bool isInt = int.TryParse(sources[i], out type);
-                    if (isInt != true)
+                    bool isInt = int.TryParse(sources[i], out int type);
+                    if (isInt == false)
                     {
-                        continue;
+                        ClearSettings("Source settings Invalid, reset.");
+                        break;
                     }
                     string dir = sources[i + 1];
                     await GotSourceDirRun(dir, type);
@@ -121,17 +127,16 @@ namespace RemuxMovies
             {
                 for (int i = 0; i < outputs.Count; i += 2)
                 {
-                    int type;
-                    bool isInt = int.TryParse(outputs[i], out type);
-                    if (isInt != true)
+                    bool isInt = int.TryParse(outputs[i], out int type);
+                    if (isInt == false)
                     {
-                        continue;
+                        ClearSettings("Output directories setting Invalid, reset.");
+                        break;
                     }
                     string dir = outputs[i + 1];
                     ChangeOutputDirRun(dir, type);
                 }
             }
-            //await DirReport();
             populateInfoLabel();
         }
         private void populateInfoLabel()
@@ -142,17 +147,6 @@ namespace RemuxMovies
             infoLabel.Content = $"{movs} Movies ready to process." + Environment.NewLine +
                                 $"{musicvideos} Music Videos ready to process." + Environment.NewLine +
                                 $"{tvshows} TV Shows ready to process.";
-        }
-
-        private async Task DirReport()
-        {
-            foreach (var t in types.Keys)
-            {
-                var numDirs = SourceDirs.Where(x => x.type == t).Count();
-                var numFiles = SourceFiles.Where(x => x.type == t && x._Remembered == false).Count();
-            
-                await PrintToAppOutputBG($"{numDirs} directories found containing {numFiles} new {types[t]} found.", 0, 1);
-            }
         }
 
         private async void Start_Click(object sender, RoutedEventArgs e)
@@ -166,7 +160,6 @@ namespace RemuxMovies
         }
         private async Task Start_ClickRun(List<NewFileInfo> sourceFiles)
         {
-
             tabControl.SelectedIndex = 0;
             ToggleButtons(false);
             ConsoleOutput.Clear();
@@ -386,7 +379,20 @@ namespace RemuxMovies
             ConsoleOutput.Clear();
         }
 
-        private static readonly object AppOutputStringLock = new object();
+        private async void Button_Click(object sender, RoutedEventArgs e)
+        {
+            AppOutput.Document.Blocks.Clear();
+            List<string> files = new List<string>();
+            foreach (var o in Properties.Settings.Default.OldMovies)
+            {
+                files.Add(System.IO.Path.GetFileName(o));
+            }
+            files.Sort();
+            foreach (var f in files)
+            {
+                await PrintToAppOutputBG(f, 0, 1);
+            }
+        }
 
         private void ForceCheckBox_Checked(object sender, RoutedEventArgs e)
         {
@@ -394,7 +400,6 @@ namespace RemuxMovies
             populateInfoLabel();
         }
 
-        static SemaphoreSlim semaphoreSlimCO = new SemaphoreSlim(1, 1);
         static SemaphoreSlim semaphoreSlimC2 = new SemaphoreSlim(1, 1);
         private void PrintToConsoleOutputBG(string str)
         {
@@ -423,7 +428,7 @@ namespace RemuxMovies
                         ConsoleScroll.ScrollToEnd();
                     }                                      
                     return 42;
-                });
+                },DispatcherPriority.Background);
                 if (ret != 42)
                 {
                     MessageBox.Show("ret = " + ret);

@@ -60,4 +60,3 @@ C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.ex
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.pdb
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\Xabe.FFmpeg.dll
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\Xabe.FFmpeg.xml
-C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.csprojAssemblyReference.cache

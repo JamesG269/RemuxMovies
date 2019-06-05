@@ -74,7 +74,7 @@ namespace RemuxMovies
             }
             string VidDir = dialog.SelectedPath;
             await GotSourceDirRun(VidDir, type);
-            SaveSources();            
+            SaveSources();
         }
 
         private async Task GotSourceDirRun(string VidDir, int type)
@@ -85,23 +85,22 @@ namespace RemuxMovies
             }
             if (Directory.Exists(VidDir))
             {
-                await Task.Run(() => GotSourceDir(VidDir, type));
-                listView.ItemsSource = SourceDirs;
-                listView.Items.Refresh();
+                await Task.Run(() => GotSourceDir(VidDir, type));                
+                listView.ItemsSource = SourceDirs.ToList();                
             }
-            ListView_SelectionChangedRun();
+            ListViewUpdater();
             Interlocked.Exchange(ref oneInt, 0);
         }
         private void GotSourceDir(string VidDir, int type)
-        {            
+        {
             SourceDirs.RemoveAll(x => x.Name == VidDir && x.type == type);
             NewDirInfo temp = new NewDirInfo();
             temp.Name = VidDir;
             temp.type = type;
-            SourceDirs.Add(temp);
-            List<NewFileInfo> files = GetFiles(VidDir, "*.mkv;*.mp4;*.avi;*.m4v;");
+            SourceDirs.Add(temp);            
+            List<NewFileInfo> files = GetFiles(VidDir, "*.mkv;*.mp4;*.avi;*.m4v;");            
             foreach (var file in files)
-            {
+            {                
                 var m = IsTVShow(file);
                 if ((m.Success && type != TVShowsType) || (!m.Success && type == TVShowsType))
                 {
@@ -126,25 +125,6 @@ namespace RemuxMovies
                 }
             }
             return m;
-        }
-
-        private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            ListView_SelectionChangedRun();
-        }
-        private void ListView_SelectionChangedRun()
-        {
-            if (listView.SelectedIndex != -1)
-            {
-                var list1 = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                if (list1.Count == 0)
-                {
-                    return;
-                }
-                fileListView.ItemsSource = SourceFiles.FindAll(x => list1.Select(c => c.Name).Any(x.fromDirectory.Equals));
-                fileListView.Items.Refresh();
-            }
-            UpdateColumnWidths();
         }
 
         private void ChangeMovieOutputDir(object sender, RoutedEventArgs e)
@@ -177,57 +157,55 @@ namespace RemuxMovies
             {
                 return;
             }
-            OutputDirs.RemoveAll(x => x.type == type);            
+            OutputDirs.RemoveAll(x => x.type == type);
             NewDirInfo temp = new NewDirInfo();
             temp.Name = outputDir;
             temp.type = type;
 
             OutputDirs.Add(temp);
-            outputDirListView.ItemsSource = OutputDirs;
-            outputDirListView.Items.Refresh();
+            outputDirListView.ItemsSource = OutputDirs.ToList();            
+            ListViewUpdater();
         }
 
         private void RemoveMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (listView.SelectedIndex >= 0)
+            if (listView.SelectedIndex > -1)
             {
                 var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                SourceFiles.RemoveAll(x => listSelectedItems.Select(c => c.Name).Any(x.fromDirectory.Equals));                
-                SourceDirs.RemoveAll(x => listSelectedItems.Any(c => c.Name.Equals(x.Name) && c.type.Equals(x.type)));
-                listView.ItemsSource = SourceDirs;
-                listView.Items.Refresh();
+                SourceFiles.RemoveAll(x => listSelectedItems.Any(c => c.Name == x.fromDirectory && c.type == x.type));
+                SourceDirs.RemoveAll(x => listSelectedItems.Any(c => c.Name == x.Name && c.type == x.type));
+                listView.ItemsSource = SourceDirs.ToList();
                 fileListView.ItemsSource = new Dictionary<string, string>();
-                fileListView.Items.Refresh();
-                ListView_SelectionChangedRun();
-                SaveSources();
             }
+            ListViewUpdater();
+            SaveSources();
         }
 
         private void RemoveFileItem_Click(object sender, RoutedEventArgs e)
         {
-            if (fileListView.SelectedIndex >= 0)
+            if (fileListView.SelectedIndex > -1)
             {
                 var listSelectedItems = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-                SourceFiles.RemoveAll(c => listSelectedItems.Any(x => c.Name == x.Name && c.type == x.type));                
-                ListView_SelectionChangedRun();
+                SourceFiles.RemoveAll(c => listSelectedItems.Any(x => c.Name == x.Name && c.type == x.type));
             }
+            ListViewUpdater();            
         }
 
         private void OpenExplorerFileItem_Click(object sender, RoutedEventArgs e)
         {
-            if (fileListView.SelectedIndex >= 0)
+            if (fileListView.SelectedIndex > -1)
             {
                 var listSelectedItems = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
                 if (listSelectedItems.Count > 0)
                 {
                     OpenExplorer(listSelectedItems[0].DirectoryName);
                 }
-            }
+            }            
         }
 
         private void OpenExplorerDirItem_Click(object sender, RoutedEventArgs e)
         {
-            if (listView.SelectedIndex >= 0)
+            if (listView.SelectedIndex > -1)
             {
                 var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
                 if (listSelectedItems.Count > 0)
@@ -237,10 +215,10 @@ namespace RemuxMovies
                 }
             }
         }
-        
+
         private void OpenExplorerOutputItem_Click(object sender, RoutedEventArgs e)
         {
-            if (outputDirListView.SelectedIndex >= 0)
+            if (outputDirListView.SelectedIndex > -1)
             {
                 var listSelectedItems = outputDirListView.SelectedItems.OfType<NewDirInfo>().ToList();
                 if (listSelectedItems.Count > 0)
@@ -260,11 +238,11 @@ namespace RemuxMovies
             {
                 return;
             }
-            if (listView.SelectedIndex >= 0)
+            if (listView.SelectedIndex > -1)
             {
                 var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => listSelectedItems.Select(c => c.Name).Any(x.fromDirectory.Contains)).ToList();
-                await Start_ClickRun(sourceFiles.Where(x => listSelectedItems.Select(c => c.type).Any(x.type.Equals)).ToList());
+                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => listSelectedItems.Any(c => c.Name == x.fromDirectory && c.type == x.type)).ToList();
+                await Start_ClickRun(sourceFiles);
             }
             Interlocked.Exchange(ref oneInt, 0);
         }
@@ -275,10 +253,10 @@ namespace RemuxMovies
             {
                 return;
             }
-            if (fileListView.SelectedIndex >= 0)
+            if (fileListView.SelectedIndex > -1)
             {
-                var l = fileListView.SelectedItems.OfType<NewFileInfo>().Select(x => x.FullName).ToList();
-                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => l.Any(x.FullName.Equals)).ToList();
+                var l = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
+                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => l.Any(c => c.FullName == x.FullName)).ToList();
                 await Start_ClickRun(sourceFiles);
             }
             Interlocked.Exchange(ref oneInt, 0);
@@ -286,22 +264,40 @@ namespace RemuxMovies
 
         private void SkipFileItem_Click(object sender, RoutedEventArgs e)
         {
-            var l = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-            foreach (var f in l)
+            if (fileListView.SelectedIndex > -1)
             {
-                f._Remembered = !f._Remembered;
+                var l = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
+                foreach (var f in l)
+                {
+                    f._Remembered = !f._Remembered;
+                }
             }
-            ListView_SelectionChangedRun();            
+            ListViewUpdater();
+        }
+        private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ListViewUpdater();
+        }
+        private void ListViewUpdater()
+        {
+            if (listView.SelectedIndex > -1)
+            {
+                var list1 = listView.SelectedItems.OfType<NewDirInfo>().ToList();
+                fileListView.ItemsSource = SourceFiles.Where(x => list1.Any(c => x.fromDirectory == c.Name && x.type == c.type)).ToList();
+            }
+            UpdateColumnWidths();
         }
         public void UpdateColumnWidths()
         {
             populateInfoLabel();
             foreach (UIElement element in UpdateGrid.Children)
             {
+                element.UpdateLayout();
                 if (element is ListView)
-                {
+                {                    
                     var e = element as ListView;
                     ListViewTargetUpdated(e);
+                    e.UpdateLayout();
                 }
             }
         }
@@ -333,14 +329,14 @@ namespace RemuxMovies
         }
 
         private async void Reload_Click(object sender, RoutedEventArgs e)
-        {            
+        {
             var dirs = SourceDirs.ToList();
             SourceDirs.Clear();
             SourceFiles.Clear();
             foreach (var d in dirs)
             {
                 await GotSourceDirRun(d.Name, d.type);
-            }                                   
+            }
         }
 
     }
