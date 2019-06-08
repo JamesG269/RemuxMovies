@@ -59,4 +59,3 @@ C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialog
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.xml
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Xabe.FFmpeg.dll
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Xabe.FFmpeg.xml
-C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csprojAssemblyReference.cache

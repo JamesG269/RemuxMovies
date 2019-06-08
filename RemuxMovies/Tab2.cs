@@ -101,7 +101,7 @@ namespace RemuxMovies
             List<NewFileInfo> files = GetFiles(VidDir, "*.mkv;*.mp4;*.avi;*.m4v;");            
             foreach (var file in files)
             {                
-                var m = IsTVShow(file);
+                var m = IsTVShow(file.Name);
                 if ((m.Success && type != TVShowsType) || (!m.Success && type == TVShowsType))
                 {
                     continue;
@@ -113,12 +113,12 @@ namespace RemuxMovies
             }
         }
 
-        private Match IsTVShow(NewFileInfo nfi)
+        private Match IsTVShow(string nfi)
         {
             Match m = null;
             foreach (var r in TVShowRegex)
             {
-                m = r.Match(nfi.Name);
+                m = r.Match(nfi);
                 if (m.Success == true)
                 {
                     break;
@@ -286,10 +286,10 @@ namespace RemuxMovies
                 fileListView.ItemsSource = SourceFiles.Where(x => list1.Any(c => x.fromDirectory == c.Name && x.type == c.type)).ToList();
             }
             UpdateColumnWidths();
+            populateInfoLabel();
         }
         public void UpdateColumnWidths()
-        {
-            populateInfoLabel();
+        {            
             foreach (UIElement element in UpdateGrid.Children)
             {
                 element.UpdateLayout();

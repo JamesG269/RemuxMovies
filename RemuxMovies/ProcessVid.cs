@@ -50,14 +50,14 @@ namespace RemuxMovies
             }
             await PrintToAppOutputBG(" ", 0, 1);
             int num = 0;
+            int total = SourceFiles.Where(x => !x._Remembered || forceAll).Count();
             foreach (var file in sourceFiles)
             {
                 if (AbortProcessing == true)
                 {
                     AbortProcessing = false;
                     break;
-                }
-                num++;
+                }                
                 if (OutputDirs.Where(x => x.type == file.type).Count() == 0)
                 {
                     await PrintToAppOutputBG("Output directory not set for " + file.FriendlyType, 0, 1, "red");
@@ -68,24 +68,22 @@ namespace RemuxMovies
                 {
                     await createNfo(file);
                 }
-
                 if (forceAll == false && file._Remembered == true)
                 {
-                    await PrintToAppOutputBG($"Video {num} of {SourceFiles.Where(x => !x._Remembered || forceAll).Count()} already processed:", 0, 1);
-                    await PrintToAppOutputBG(file.originalFullName, 0, 1);
+                    await PrintToAppOutputBG($"Video already processed: " + Environment.NewLine + file.originalFullName, 0, 1);
                     SkippedList.Add(file.originalFullName);
                     continue;
                 }
-                await PrintToAppOutputBG($"Processing video {num} of {SourceFiles.Where(x => !x._Remembered || forceAll).Count()}:", 0, 1);
-                await PrintToAppOutputBG(file.originalFullName, 0, 1);
-                await PrintToAppOutputBG($"Size: {file.length.ToString("N0")} bytes.", 0, 2);
+                num++;
+                await PrintToAppOutputBG($"Processing video {num} of {total}:" + Environment.NewLine +  
+                    file.originalFullName + Environment.NewLine + 
+                    $"Size: {file.length.ToString("N0")} bytes.", 0, 2);
                 bool ret = await processFile(file);
                 if (ret)
                 {
                     file._Remembered = true;
                     Dispatcher.Invoke(() => {
                         ListViewUpdater();
-                        //fileListView.Items.Refresh();
                     });
 
                     if (!Properties.Settings.Default.OldMovies.Contains(file.FullName))

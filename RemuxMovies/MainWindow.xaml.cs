@@ -57,7 +57,7 @@ namespace RemuxMovies
             {MusicVideoType, "Music Videos"},
             {TVShowsType, "TV Shows"}
         };
-            
+
         List<string> ErroredList;
         Dictionary<string, string> SuccessList;
         List<string> NoAudioList;
@@ -66,7 +66,7 @@ namespace RemuxMovies
 
         public MainWindow()
         {
-            InitializeComponent();            
+            InitializeComponent();
         }
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -80,8 +80,8 @@ namespace RemuxMovies
                 ClearSettings(str);
             }
             await LoadDirs();
-            
-            await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.",0,1);
+
+            await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.", 0, 1);
             FFmpeg.ExecutablesPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FFmpeg");
             var ffmpegDir = System.IO.Path.Combine(FFmpeg.ExecutablesPath, "ffmpeg.exe");
             await FFmpeg.GetLatestVersion();
@@ -165,9 +165,9 @@ namespace RemuxMovies
             ConsoleOutput.Clear();
             AppOutput.Document.Blocks.Clear();
             if (forceAll == true)
-            {                
+            {
                 await PrintToAppOutputBG("Force mode, ignoring remembered movies.", 0, 2);
-            }            
+            }
             await Task.Run(() => ProcessVideo(sourceFiles));
             ToggleButtons(true);
         }
@@ -179,7 +179,7 @@ namespace RemuxMovies
             ReloadButton.IsEnabled = t;
             stackPanel.IsEnabled = t;
         }
-        
+
         public int oneInt = 0;
 
         public class NewFileInfo
@@ -217,7 +217,7 @@ namespace RemuxMovies
                     _destName = value;
                 }
             }
-            
+
             public bool _Remembered;
             public string Remembered
             {
@@ -352,9 +352,6 @@ namespace RemuxMovies
                 semaphoreSlim.Release();
             }
         }
-
-        int LastFrame = 0;
-        bool FrameFound = false;
         bool AbortProcessing = false;
         private async void Abort_Click(object sender, RoutedEventArgs e)
         {
@@ -375,16 +372,20 @@ namespace RemuxMovies
 
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
-            AppOutput.Document.Blocks.Clear();            
+            AppOutput.Document.Blocks.Clear();
             ConsoleOutput.Clear();
         }
 
-        private async void Button_Click(object sender, RoutedEventArgs e)
+        private async void DisplayOld(object sender, RoutedEventArgs e)
         {
             AppOutput.Document.Blocks.Clear();
             List<string> files = new List<string>();
             foreach (var o in Properties.Settings.Default.OldMovies)
             {
+                if (IsTVShow(o).Success)
+                {
+                    continue;
+                }
                 files.Add(System.IO.Path.GetFileName(o));
             }
             files.Sort();
@@ -392,6 +393,7 @@ namespace RemuxMovies
             {
                 await PrintToAppOutputBG(f, 0, 1);
             }
+            await PrintToAppOutputBG(files.Count() + " old items.", 0, 1);
         }
 
         private void ForceCheckBox_Checked(object sender, RoutedEventArgs e)
@@ -399,45 +401,35 @@ namespace RemuxMovies
             forceAll = forceCheckBox.IsChecked.Value;
             populateInfoLabel();
         }
+        int LastFrameConsoleOutput = 0;
+        bool FoundFrameConsoleOutput = false;
 
-        static SemaphoreSlim semaphoreSlimC2 = new SemaphoreSlim(1, 1);
         private void PrintToConsoleOutputBG(string str)
         {
-            semaphoreSlimC2.Wait();
-            try
-            {                
-                int ret = Dispatcher.Invoke(() =>
-                {                    
-                    if (FrameFound == true)
-                    {
-                        if (ConsoleOutput.Text.Length > LastFrame)
-                        {
-                            ConsoleOutput.Text = ConsoleOutput.Text.Substring(0,LastFrame);
-                        }
-                        FrameFound = false;
-                    }
-                    if (str.StartsWith("frame="))
-                    {
-                        LastFrame = ConsoleOutput.Text.Length;
-                        FrameFound = true;
-                        ConsoleOutput.Text += str;
-                    }
-                    else
-                    {
-                        ConsoleOutput.Text += str + Environment.NewLine;
-                        ConsoleScroll.ScrollToEnd();
-                    }                                      
-                    return 42;
-                },DispatcherPriority.Background);
-                if (ret != 42)
-                {
-                    MessageBox.Show("ret = " + ret);
-                }
-            }
-            finally
+            Dispatcher.InvokeAsync(() =>
             {
-                semaphoreSlimC2.Release();
-            }
+                if (FoundFrameConsoleOutput)
+                {
+                    ConsoleOutput.Text = ConsoleOutput.Text.Remove(LastFrameConsoleOutput);
+                }
+                FoundFrameConsoleOutput = false;
+                if (str.StartsWith("frame="))
+                {
+                    LastFrameConsoleOutput = ConsoleOutput.Text.Length;
+                    FoundFrameConsoleOutput = true;
+                }
+                if (!FoundFrameConsoleOutput)
+                {
+                    ConsoleOutput.Text += str + Environment.NewLine;
+                    ConsoleScroll.ScrollToEnd();
+                }
+                else
+                {
+                    ConsoleOutput.Text += str;
+                }
+            }, DispatcherPriority.Background);
+
         }
+
     }
 }

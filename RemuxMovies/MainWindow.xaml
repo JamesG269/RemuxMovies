@@ -129,7 +129,7 @@
         <Button Name="ReloadButton" IsEnabled="false" Content="  Reload  " HorizontalAlignment="Center" Click="Reload_Click" Width="auto" Height="20" Grid.Column="5" Grid.Row="2"/>
         <Button Name="MakeNfosButton" IsEnabled="false" Content="  Make .Nfos  " HorizontalAlignment="Center" Click="MakeNfos_Click" Width="auto" Height="20" Grid.Column="6" Grid.Row="2"/>
         <Label Name="infoLabel" Content="No files." Grid.Column="11" Grid.Row="2"/>
-        <Button Content="View Saved Dirs" Grid.Column="7" Grid.Row="2" Height="20" Click="Button_Click"/>
+        <Button Content="View Saved Dirs" Grid.Column="7" Grid.Row="2" Height="20" Click="DisplayOld"/>
 
     </Grid>
 </Window>
