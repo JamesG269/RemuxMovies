@@ -60,3 +60,11 @@ C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.ex
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.pdb
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\Xabe.FFmpeg.dll
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\Xabe.FFmpeg.xml
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\TMDbLib.dll
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\TMDbLib.pdb
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\MoreLinq.dll
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\System.ValueTuple.dll
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\MoreLinq.pdb
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\MoreLinq.xml
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Debug\System.ValueTuple.xml
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.csprojAssemblyReference.cache

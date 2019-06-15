@@ -35,9 +35,8 @@ namespace RemuxMovies
             {
                 return;
             }
-            MakeNfosButton.IsEnabled = false;
-            StartButton.IsEnabled = false;
-            if (OutputDirs.Where(x => x.type == MusicVideoType).Count() != 0)
+            ToggleButtons(false);
+            if (OutputDirs.Where(x => x.type == MovieType).Count() != 0)
             {
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
@@ -45,28 +44,24 @@ namespace RemuxMovies
                 sw.Stop();
                 await PrintToAppOutputBG("Time (ms): " + sw.ElapsedMilliseconds, 0, 1);
             }
-            MakeNfosButton.IsEnabled = true;
-            StartButton.IsEnabled = true;
+            ToggleButtons(true);
             Interlocked.Exchange(ref oneInt, 0);
         }
         private async Task ProcessNfo()
-        {
-            AbortProcessing = false;
-            GetFiles_Cancel = false;
+        {            
+            InitLists();
             nfoList = new List<NewFileInfo>();
-            for (int i = 0; i < 10; i++)
-            {
-                nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, "*.mkv;")));
-            }
+            nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MovieType).First().Name, "*.mkv;")));            
             if (nfoList.Count == 0)
             {
                 return;
             }
-            await PrintToAppOutputBG(nfoList.Count + ".nfo files need to be created.", 0, 1);
+            await PrintToAppOutputBG(nfoList.Count + " .nfo files need to be created.", 0, 1);
             int num = 0;
             await PrintToAppOutputBG("Creating .nfo files", 0, 1);
             foreach (var file in nfoList)
             {
+                await PrintToAppOutputBG($"Creating .nfo for: {file.originalName}", 0, 1);
                 if (AbortProcessing == true)
                 {
                     await PrintToAppOutputBG("Nfo creation aborted!", 0, 1, "red");
@@ -75,10 +70,16 @@ namespace RemuxMovies
                     break;
                 }
                 num++;
-                await createNfo(file);
+                file.destPath = file.DirectoryName;
+                file.destName = file.originalName;
+                bool ret = await getTMDB(file);
+                if (!ret)
+                {
+                    await PrintToAppOutputBG($"Error making .nfo for: {file.originalFullName}", 0, 1);
+                }
             }
-            await PrintToAppOutputBG(num + " .nfo files created.", 0, 1, "green");
-            System.Media.SystemSounds.Asterisk.Play();
+            await displaySummary();
+            await PrintToAppOutputBG(num + " .nfo files created.", 0, 1, "green");            
         }
         private async Task createNfo(NewFileInfo nfi)
         {

@@ -10,6 +10,7 @@ namespace RemuxMovies
     /// </summary>
     public partial class MainWindow : Window
     {
+        string audioLanguage = "";
         private async Task<bool> FindAudioAndSubtitle(NewFileInfo file)
         {
             bool foundEngAudio = false;
@@ -83,10 +84,16 @@ namespace RemuxMovies
 
                         // Find first audio track that is english or unspecified language, which is usually english.
 
-
+                        audioLanguage = "en";
                         if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("language"))
-                        {
+                        {                            
                             var language = streams[x]["tags"]["language"];
+
+                            audioLanguage = JsonValue.Parse(language.ToString());
+                            if (audioLanguage.Length > 2)
+                            {
+                                audioLanguage = audioLanguage.Substring(0, 2);
+                            }
                             await PrintToAppOutputBG("Language in movie == " + language, 0, 1, "yellow");
                             if (!(language == "eng"))
                             {

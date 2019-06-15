@@ -59,3 +59,10 @@ C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialog
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.xml
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Xabe.FFmpeg.dll
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Xabe.FFmpeg.xml
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\TMDbLib.dll
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\TMDbLib.pdb
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\MoreLinq.dll
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.ValueTuple.dll
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\MoreLinq.pdb
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\MoreLinq.xml
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.ValueTuple.xml

@@ -32,6 +32,10 @@ namespace RemuxMovies
     public partial class MainWindow : Window
     {
         string AudioMap, SubMap, VidMap, VidMapTo = "";
+        string TMDBAPIKEY = "";
+
+        int curYear;
+
         bool forceAll = false;
         JsonValue json;
 
@@ -47,7 +51,10 @@ namespace RemuxMovies
             new Regex(@"\sS\d{1,3}E\d{1,3}\s", RegexOptions.Compiled | RegexOptions.IgnoreCase),
             new Regex(@"-S\d{1,3}E\d{1,3}-", RegexOptions.Compiled | RegexOptions.IgnoreCase),
         };
-
+        string[] vidtags = new string[] { "x264", "x265", "avc", "vc-1","vc1","hevc","bluray","blu-ray","dts","truehd","ddp","flac","ac3","aac","mpeg-2","mpeg2","remux","h264","h265",
+                                          "h.264","h.265","1080p","1080i","720p","2160p","web.dl","unrated","theatrical","extended","dvd","dd5","directors","director's","remastered",
+                                          "uhd","hdr","sdr","4k","atmos","webrip","amzn",
+        };
         const int MovieType = 0;
         const int MusicVideoType = 1;
         const int TVShowsType = 2;
@@ -58,11 +65,16 @@ namespace RemuxMovies
             {TVShowsType, "TV Shows"}
         };
 
-        List<string> ErroredList;
-        Dictionary<string, string> SuccessList;
+        List<string> ErroredList;        
         List<string> NoAudioList;
         List<string> SkippedList;
         List<string> UnusualList;
+        List<string> BadChar;
+        List<string> nonChar;
+        List<string> ignoreWords = new List<string>() { "an", "the", "a", "and", "part","&","3d","episode" };
+
+        Dictionary<string, string> SuccessList;
+        Dictionary<string,string> NoTMBDB;
 
         public MainWindow()
         {
@@ -92,6 +104,7 @@ namespace RemuxMovies
             }
             ToggleButtons(true);
             await PrintToAppOutputBG("Ready. ", 0, 2, "green");
+            curYear = DateTime.Today.Year;
         }
 
         private static void ClearSettings(string str)
@@ -138,6 +151,7 @@ namespace RemuxMovies
                 }
             }
             populateInfoLabel();
+            LoadNonChar();
         }
         private void populateInfoLabel()
         {
@@ -286,11 +300,9 @@ namespace RemuxMovies
             string[] dirFrags = file.originalDirectoryName.Split('\\');
             destName = file.originalName.Substring(0, file.originalName.Length - 4) + ".mkv";
             string destDirName = dirFrags.Last() + ".mkv";
-            string[] vidtags = new string[] { "x264", "x265", "avc", "vc-1","vc1","hevc","bluray","blu-ray","dts","truehd","ddp","flac","ac3","aac","mpeg-2","mpeg2","remux","h264","h265",
-                                              "h.264","h.265","1080p","1080i","720p","2160p"};
+            
             int y = 0;
             bool takeDirName = false;
-            int curYear = DateTime.Today.Year;
             if (dirFrags.Length > 1)
             {
                 if (vidtags.Any(destDirName.ToLower().Contains))
@@ -321,8 +333,7 @@ namespace RemuxMovies
                         destName = destDirName;
                     }
                 }
-            }
-            destName = destName.Replace("-", ".");
+            }            
             file.destName = destName;
         }
 
@@ -429,6 +440,19 @@ namespace RemuxMovies
                 }
             }, DispatcherPriority.Background);
 
+        }
+        private void LoadNonChar()
+        {
+            string tmdbfile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TMDB_API_KEY.txt");
+            if (File.Exists(tmdbfile))
+            {
+                TMDBAPIKEY = File.ReadAllText(tmdbfile);
+            }            
+            string file = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NonChar.txt");
+            if (File.Exists(file))
+            {
+                nonChar = File.ReadAllLines(file).ToList();
+            }            
         }
 
     }
