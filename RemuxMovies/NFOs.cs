@@ -62,6 +62,10 @@ namespace RemuxMovies
             foreach (var file in nfoList)
             {
                 await PrintToAppOutputBG($"Creating .nfo for: {file.originalName}", 0, 1);
+                if (await GetMovInfo(file) == false)
+                {
+                    continue;
+                }                
                 if (AbortProcessing == true)
                 {
                     await PrintToAppOutputBG("Nfo creation aborted!", 0, 1, "red");

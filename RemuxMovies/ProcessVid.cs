@@ -130,7 +130,7 @@ namespace RemuxMovies
                 return;
             }
             await PrintToAppOutputBG(list.Count + displayStr, 1, 1, list.Count == 0 ? "White" : color);
-            foreach (var file in list.Distinct())
+            foreach (var file in list)
             {
                 await PrintToAppOutputBG(file, 0, 1, color);
             }
@@ -234,10 +234,6 @@ namespace RemuxMovies
             {
                 return false;
             }
-            if (await GetMovInfo(nfi) == false)
-            {
-                return false;
-            }
             string file = nfi.destName.ToLower();
             bool foundYear = false;
             file = file.Substring(0, file.Length - 4);
@@ -311,7 +307,7 @@ namespace RemuxMovies
                     {
                         maxsize = p.Length;
                     }
-                    searchStr[0] += p;
+                    searchStr[2] += p;
                     if (wordnumbers.ContainsKey(p))
                     {
                         p = wordnumbers[p];
@@ -327,7 +323,7 @@ namespace RemuxMovies
                             romB = true;
                         }
                     }
-                    searchStr[2] += p;
+                    searchStr[0] += p;
                 }
                 if ((parts.Count - skip) < 3 && maxsize < 2)
                 {
@@ -344,20 +340,25 @@ namespace RemuxMovies
                 {
                     searchStr.RemoveAt(1);
                 }
-                if (!ignoreWords.Contains(searchStr[0]))
+                foreach (string s in searchStr)
                 {
-                    foreach (string s in searchStr)
+                    if (!ignoreWords.Contains(s))
                     {
-                        results = client.SearchMovieAsync(s).Result;
-                        await Task.Delay(300);                                  // tmdb limits to 40 requests per 10 seconds.   
-                        if (results.Results.Count > 0)
+                        bool tryYear = false;
+                        do
                         {
-                            FoundMovie = await IDMovie(results, s, foundYear, nfi, client, fileYear);
-                            if (FoundMovie)
+                            tryYear = !tryYear;
+                            results = client.SearchMovieAsync(s, 0, true, tryYear ? fileYear : 0).Result;
+                            await Task.Delay(300);                                  // tmdb limits to 40 requests per 10 seconds.   
+                            if (results.Results.Count > 0)
                             {
-                                break;
+                                FoundMovie = await IDMovie(results, s, foundYear, nfi, client, fileYear);                                
                             }
-                        }
+                        } while (tryYear == true && !FoundMovie);
+                    }
+                    if (FoundMovie)
+                    {
+                        break;
                     }
                 }
                 skip++;
@@ -372,22 +373,23 @@ namespace RemuxMovies
 
         private async Task createBasicNfo(NewFileInfo nfi, string file)
         {
-            string movieURL = $"<movie><title>{file}</title></movie>";
+            string movieURL = $"<movie><title>{nfi.originalName}</title></movie>";
             await createMovNfo(nfi, movieURL);
             await PrintToAppOutputBG("Created Basic .nfo.", 0, 1, "yellow");
         }
 
-        public class MovEquWeight
+        public class MovWeight
         {
             public int MovieID;
             public int YearDiff;
             public int NameDiff;
+            public int LangDiff;
         }
 
         private async Task<bool> IDMovie(SearchContainer<SearchMovie> results, string file, bool foundYear, NewFileInfo nfi, TMDbClient client, int yearFromFileName)
         {
             List<int> prevIDs = new List<int>();
-            List<MovEquWeight> closestMovs = new List<MovEquWeight>();
+            List<MovWeight> closestMovs = new List<MovWeight>();
             for (int i = 0; i < results.Results.Count; i++)
             {
                 if (prevIDs.Contains(results.Results[i].Id))
@@ -395,9 +397,9 @@ namespace RemuxMovies
                     continue;
                 }
                 prevIDs.Add(results.Results[i].Id);
-                MovEquWeight mov = new MovEquWeight();
+                MovWeight mov = new MovWeight();
                 mov.MovieID = results.Results[i].Id;
-                int temp = 6;
+                int temp = 2;
                 if (foundYear)
                 {
                     if (results.Results[i].ReleaseDate != null)
@@ -413,27 +415,32 @@ namespace RemuxMovies
                         }
                     }
                 }
+                mov.YearDiff = temp;
+                temp = 0;
                 if (results.Results[i].OriginalLanguage != audioLanguage)
                 {
                     if (audioLanguage == "en")
                     {
-                        temp += 1;
+                        temp = 1;
                     }
                     else
                     {
-                        temp += 3;
+                        temp = 2;
                     }
                 }
-                mov.YearDiff = temp;
+                mov.LangDiff = temp;
                 int ne = ProcessTitle(file, results.Results[i].OriginalTitle, results.Results[i].Title);
                 if (ne == -1)
                 {
-                    continue;
+                    if (results.Results.Count != 1 || temp > 2)
+                    {
+                        continue;
+                    }
+                    ne = 0;
                 }
                 mov.NameDiff = ne;
                 closestMovs.Add(mov);
             }
-            string movieURL = "";
             if (closestMovs.Count == 0)
             {
                 return false;
@@ -443,11 +450,12 @@ namespace RemuxMovies
             closestMovs.RemoveAll(x => x.YearDiff > c);
             c = closestMovs.Min(x => x.NameDiff);
             closestMovs.RemoveAll(x => x.NameDiff > c);
+            c = closestMovs.Min(x => x.LangDiff);
+            closestMovs.RemoveAll(x => x.LangDiff > c);
             movieID = closestMovs[0].MovieID;
             Movie movie = await client.GetMovieAsync(movieID, MovieMethods.Credits);
             await Task.Delay(300);
-
-            movieURL = @"https://www.themoviedb.org/movie/" + movieID;
+            string movieURL = @"https://www.themoviedb.org/movie/" + movieID;
             bool ret = await createMovNfo(nfi, movieURL);
 
             foreach (Cast cast in movie.Credits.Cast)
@@ -487,30 +495,29 @@ namespace RemuxMovies
         private int ProcessTitleInner(string file, string Title)
         {
             int ne = 0;
-            int ne2 = 0;
             int ad = 0;
             int ad2 = 0;
             bool loop = false;
             bool loop2 = false;
-            string str2 = string.Copy(file);
+            string fileStr = string.Copy(file);
             do
             {
-                string str = string.Copy(Title);
+                string titleStr = string.Copy(Title);
                 ad2 = 0;
                 do
                 {
-                    ne = CompareTitle(str, str2);
+                    ne = CompareTitle(titleStr, fileStr);
                     loop2 = false;
                     if (ne == -1)
                     {
-                        loop2 = ShortenName(ref str);
+                        loop2 = ShortenName(ref titleStr);
                         ad2++;
                     }
                 } while (loop2);
                 loop = false;
                 if (ne == -1)
                 {
-                    loop = ShortenName(ref str2);
+                    loop = ShortenName(ref fileStr);
                     ad++;
                 }
             } while (loop);
@@ -565,6 +572,7 @@ namespace RemuxMovies
             {"ten","10" },
             {"eleven","11" },
             {"twelve","12" },
+            {"thirteen","13" }
         };
 
 
@@ -624,25 +632,25 @@ namespace RemuxMovies
                     {
                         ni++;
                         continue;
-                    }                    
-                    if (pb && pi == (parts.Count - 1))
-                    {
-                        equ = false;
-                        break;
-                    }
-                    if (nb && ni == (newParts.Count - 1))
-                    {
-                        equ = false;
-                        break;
                     }
                     if (pb)
                     {
                         pi++;
+                        if (pi == (parts.Count))
+                        {
+                            equ = false;
+                            break;
+                        }
                         continue;
                     }
                     if (nb)
                     {
                         ni++;
+                        if (ni == (newParts.Count))
+                        {
+                            equ = false;
+                            break;
+                        }
                         continue;
                     }
                     equ = false;
