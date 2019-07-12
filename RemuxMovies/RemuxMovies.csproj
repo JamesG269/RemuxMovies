@@ -124,6 +124,7 @@
     <Compile Include="NFOs.cs" />
     <Compile Include="ProcessVid.cs" />
     <Compile Include="Tab2.cs" />
+    <Compile Include="tmdb.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

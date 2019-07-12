@@ -5,6 +5,7 @@ using System.IO;
 using System.Json;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -41,9 +42,9 @@ namespace RemuxMovies
 
         readonly Regex[] regexChecks = new Regex[]
         {
-            new Regex(@"\(\d{4}\)", RegexOptions.Compiled),
-            new Regex(@"\.\d{4}\.", RegexOptions.Compiled),
-            new Regex(@"\s\d{4}\s", RegexOptions.Compiled)
+            new Regex(@"\(\d{4}\)", RegexOptions.Compiled | RegexOptions.RightToLeft),
+            new Regex(@"\.\d{4}\.", RegexOptions.Compiled | RegexOptions.RightToLeft),
+            new Regex(@"\s\d{4}\s", RegexOptions.Compiled | RegexOptions.RightToLeft)
         };
         readonly Regex[] TVShowRegex = new Regex[]
         {
@@ -58,7 +59,7 @@ namespace RemuxMovies
         const int MovieType = 0;
         const int MusicVideoType = 1;
         const int TVShowsType = 2;
-        public static Dictionary<int, string> types = new Dictionary<int, string>()
+        public static Dictionary<int, string> typeFriendlyName = new Dictionary<int, string>()
         {
             {MovieType, "Movies" },
             {MusicVideoType, "Music Videos"},
@@ -172,6 +173,7 @@ namespace RemuxMovies
             await Start_ClickRun(SourceFiles);
             Interlocked.Exchange(ref oneInt, 0);
         }
+        
         private async Task Start_ClickRun(List<NewFileInfo> sourceFiles)
         {
             tabControl.SelectedIndex = 0;
@@ -245,7 +247,7 @@ namespace RemuxMovies
             {
                 get
                 {
-                    return types[type];
+                    return typeFriendlyName[type];
                 }
             }
         }
@@ -280,7 +282,7 @@ namespace RemuxMovies
             {
                 get
                 {
-                    return types[_type];
+                    return typeFriendlyName[_type];
                 }
             }
         }
@@ -302,6 +304,7 @@ namespace RemuxMovies
             string destDirName = dirFrags.Last() + ".mkv";
             
             int y = 0;
+            int regExIdx = 0;
             bool takeDirName = false;
             if (dirFrags.Length > 1)
             {
@@ -311,19 +314,7 @@ namespace RemuxMovies
                 }
                 else
                 {
-                    foreach (var r in regexChecks)
-                    {
-                        Match m = r.Match(destDirName);
-                        if (m.Success)
-                        {
-                            bool result = Int32.TryParse(m.Groups[0].Value.Substring(1, 4), out y);
-                            if (result == true && y > 1900 && y <= curYear)
-                            {
-                                takeDirName = true;
-                                break;
-                            }
-                        }
-                    }
+                    takeDirName = GetFileYear(ref destDirName, ref y, ref regExIdx);
                 }
                 if (takeDirName)
                 {
@@ -353,6 +344,7 @@ namespace RemuxMovies
             await semaphoreSlim.WaitAsync();
             try
             {
+                //AppOutput.BeginChange();
                 TextRange tr = new TextRange(AppOutput.Document.ContentEnd, AppOutput.Document.ContentEnd);
                 tr.Text = (new string('\r', preNewLines) + str + new string('\r', postNewLines));
                 tr.ApplyPropertyValue(TextElement.ForegroundProperty, bc.ConvertFromString(color));
@@ -360,6 +352,7 @@ namespace RemuxMovies
             }
             finally
             {
+                //AppOutput.EndChange();
                 semaphoreSlim.Release();
             }
         }
@@ -419,28 +412,34 @@ namespace RemuxMovies
         {
             Dispatcher.InvokeAsync(() =>
             {
-                if (FoundFrameConsoleOutput)
-                {
-                    ConsoleOutput.Text = ConsoleOutput.Text.Remove(LastFrameConsoleOutput);
-                }
-                FoundFrameConsoleOutput = false;
-                if (str.StartsWith("frame="))
-                {
-                    LastFrameConsoleOutput = ConsoleOutput.Text.Length;
-                    FoundFrameConsoleOutput = true;
-                }
-                if (!FoundFrameConsoleOutput)
-                {
-                    ConsoleOutput.Text += str + Environment.NewLine;
-                    ConsoleScroll.ScrollToEnd();
-                }
-                else
-                {
-                    ConsoleOutput.Text += str;
-                }
+                PrintToConsoleWorker(str);
             }, DispatcherPriority.Background);
 
         }
+
+        private void PrintToConsoleWorker(string str)
+        {
+            if (FoundFrameConsoleOutput)
+            {
+                ConsoleOutput.Text = ConsoleOutput.Text.Remove(LastFrameConsoleOutput);
+            }
+            FoundFrameConsoleOutput = false;
+            if (str.StartsWith("frame="))
+            {
+                LastFrameConsoleOutput = ConsoleOutput.Text.Length;
+                FoundFrameConsoleOutput = true;
+            }
+            if (!FoundFrameConsoleOutput)
+            {
+                ConsoleOutput.Text += str + Environment.NewLine;
+                ConsoleScroll.ScrollToEnd();
+            }
+            else
+            {
+                ConsoleOutput.Text += str;
+            }
+        }
+
         private void LoadNonChar()
         {
             string tmdbfile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TMDB_API_KEY.txt");

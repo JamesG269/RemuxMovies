@@ -36,10 +36,10 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <ScrollViewer x:Name="AppScroll" Grid.Row="0">
-                        <RichTextBox x:Name="AppOutput" FontFamily="consolas" FontSize="12" Grid.Row="0" Grid.Column="0" Margin="0,0,0,0" Foreground="White" Background="Black"/>
+                        <RichTextBox x:Name="AppOutput" FontFamily="consolas" FontSize="12" Grid.Row="0" Grid.Column="0" Margin="0,0,0,0" Foreground="White" Background="Black" IsUndoEnabled="False"/>
                     </ScrollViewer>
                     <ScrollViewer x:Name="ConsoleScroll" Grid.Row="1" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible">
-                        <TextBox x:Name="ConsoleOutput" FontFamily="consolas" FontSize="12" Grid.Row="1" Margin="0,0,0,0" Foreground="White" Background="Black"/>
+                        <TextBox x:Name="ConsoleOutput" FontFamily="consolas" FontSize="12" Grid.Row="1" Margin="0,0,0,0" Foreground="White" Background="Black" TextWrapping="NoWrap"/>
                     </ScrollViewer>
                 </Grid>
             </TabItem>

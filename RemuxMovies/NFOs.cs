@@ -85,7 +85,7 @@ namespace RemuxMovies
             await displaySummary();
             await PrintToAppOutputBG(num + " .nfo files created.", 0, 1, "green");            
         }
-        private async Task createNfo(NewFileInfo nfi)
+        private async Task createMusicVideoNfo(NewFileInfo nfi)
         {
             string nfo = System.IO.Path.Combine(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, nfi.originalFullName.Substring(0, nfi.originalFullName.Length - 4) + ".nfo");
             try

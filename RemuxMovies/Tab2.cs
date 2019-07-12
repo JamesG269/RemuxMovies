@@ -152,11 +152,7 @@ namespace RemuxMovies
             SaveOutputs();
         }
         private void ChangeOutputDirRun(string outputDir, int type)
-        {
-            if (!Directory.Exists(outputDir))
-            {
-                return;
-            }
+        {            
             OutputDirs.RemoveAll(x => x.type == type);
             NewDirInfo temp = new NewDirInfo();
             temp.Name = outputDir;

@@ -66,3 +66,4 @@ C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.Value
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\MoreLinq.pdb
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\MoreLinq.xml
 C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.ValueTuple.xml
+C:\Users\jrg26\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csprojAssemblyReference.cache
