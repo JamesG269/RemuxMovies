@@ -2,6 +2,8 @@
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Linq;
+using System;
 
 namespace RemuxMovies
 {
@@ -36,7 +38,7 @@ namespace RemuxMovies
                     }
                 }
                 catch { }
-                try
+                //try
                 {
                     foreach (string filter in patterns)
                     {
@@ -63,7 +65,7 @@ namespace RemuxMovies
                             NewFInfo.Name = f.Name.ToLower();                            
                             NewFInfo.length = f.Length;
                             NewFInfo.fromDirectory = path;
-                            if (forceAll == false && Properties.Settings.Default.OldMovies.Contains(NewFInfo.FullName))
+                            if (forceAll == false && OldMovies.Where(x => x.FullName.Equals(NewFInfo.FullName)).Count() > 0)
                             {
                                 NewFInfo._Remembered = true;
                             }
@@ -75,7 +77,10 @@ namespace RemuxMovies
                         }                        
                     }
                 }
-                catch { }
+                //catch (Exception e)
+                {
+                    //MessageBox.Show(e.InnerException.Message);
+                }
             } while (dirs.Count > 0);
             return retFiles;
         }    

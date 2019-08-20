@@ -7,7 +7,7 @@
         xmlns:WPF="clr-namespace:ConsoleControl.WPF;assembly=ConsoleControl.WPF" x:Class="RemuxMovies.MainWindow"
         mc:Ignorable="d"
         Title="RemuxMovies by James Gentile" Height="650" Width="1200" Loaded="Window_Loaded">
-    <Grid>
+    <Grid x:Name="mainGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
@@ -15,7 +15,7 @@
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="50" MaxWidth="50"/>
-            <ColumnDefinition Width="50" MaxWidth="50"/>
+            <ColumnDefinition Width="auto" MaxWidth="50"/>
             <ColumnDefinition Width="auto" MaxWidth="50"/>
             <ColumnDefinition Width="auto" MaxWidth="50"/>
             <ColumnDefinition Width="auto" MaxWidth="50"/>
@@ -72,12 +72,8 @@
                         </ListView.ContextMenu>
                         <ListView.View>
                             <GridView x:Name="gv3">
-                                <GridViewColumn Header="Directory"
-                            DisplayMemberBinding="{Binding Name}"
-                                            Width="auto"/>
-                                <GridViewColumn Header="Type"
-                            DisplayMemberBinding="{Binding FriendlyType}"
-                                            />
+                                <GridViewColumn Header="Directory" DisplayMemberBinding="{Binding Name}" Width="auto"/>
+                                <GridViewColumn Header="Type" DisplayMemberBinding="{Binding FriendlyType}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -121,15 +117,43 @@
                     </ListView>
                 </Grid>
             </TabItem>
+            <TabItem Name="tab3" Header="Remembered Files">
+                <Grid Name="RememberedGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="auto" Height="auto" >
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="20"/>
+                    </Grid.RowDefinitions>
+
+                    <ListView Name="RememberedListBox" Grid.Row="0" Width="auto" FontFamily="consolas">
+                        <ListView.View>
+                            <GridView x:Name="RememberedGridView">
+                                <GridViewColumn Width="auto" DisplayMemberBinding="{Binding displayName}" >
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Width="auto" Tag="Name" Click="lvUsersColumnHeader_Click" Content="Name"/>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+                                <GridViewColumn Width="auto" DisplayMemberBinding="{Binding Num}" >
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader MinWidth="80" Width="auto" Tag="Num" Click="lvUsersColumnHeader_Click" Content="Num"/>
+                                    </GridViewColumn.Header>
+                                    
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <TextBox Name="RememberedSearch" Grid.Row="1" Text="Enter search term" PreviewMouseDown="RememberedSearch_MouseDown" KeyUp="RememberedSearch_KeyUp"/>
+                </Grid>
+            </TabItem>
+            
         </TabControl>
         <CheckBox Name="forceCheckBox" Content="Force" Grid.Column="9" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="ForceCheckBox_Checked" Unchecked="ForceCheckBox_Checked" />
-        <Button Name="StartButton" IsEnabled="false" Content="  Start  " HorizontalAlignment="Center" Click="Start_Click" Width="auto" Height="20" Grid.Column="2" Grid.Row="2"/>
+        <Button Name="StartButton" IsEnabled="false" Content="  Start  " HorizontalAlignment="Center" Click="Start_Click" Width="auto" Height="20" Grid.Column="1" Grid.Row="2"/>
+        <Button Name="SkipButton" IsEnabled="true" Content="  Skip  " HorizontalAlignment="Center" Click="SkipButton_Click"  Width="auto" Height="20" Grid.Column="2" Grid.Row="2"/>
         <Button Content="  Abort  " HorizontalAlignment="Center" Click="Abort_Click" Width="auto" Height="20" Grid.Column="3" Grid.Row="2"/>
         <Button Content="  Clear  " HorizontalAlignment="Center" Click="Clear_Click" Width="auto" Height="20" Grid.Column="4" Grid.Row="2"/>
         <Button Name="ReloadButton" IsEnabled="false" Content="  Reload  " HorizontalAlignment="Center" Click="Reload_Click" Width="auto" Height="20" Grid.Column="5" Grid.Row="2"/>
         <Button Name="MakeNfosButton" IsEnabled="false" Content="  Make .Nfos  " HorizontalAlignment="Center" Click="MakeNfos_Click" Width="auto" Height="20" Grid.Column="6" Grid.Row="2"/>
         <Label Name="infoLabel" Content="No files." Grid.Column="11" Grid.Row="2"/>
-        <Button Content="View Saved Dirs" Grid.Column="7" Grid.Row="2" Height="20" Click="DisplayOld"/>
-
+        <Button Content="View Saved Files" Grid.Column="7" Grid.Row="2" Height="20" Click="DisplayOld"/>
     </Grid>
 </Window>

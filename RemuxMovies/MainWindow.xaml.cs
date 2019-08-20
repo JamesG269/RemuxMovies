@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Json;
@@ -21,6 +23,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Xml;
+using System.Xml.Linq;
+using System.Xml.Serialization;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using Xabe.FFmpeg;
 using Xabe.FFmpeg.Enums;
@@ -56,6 +60,9 @@ namespace RemuxMovies
                                           "h.264","h.265","1080p","1080i","720p","2160p","web.dl","unrated","theatrical","extended","dvd","dd5","directors","director's","remastered",
                                           "uhd","hdr","sdr","4k","atmos","webrip","amzn",
         };
+        string SourceXML = "";
+        string OutputXML = "";
+        string OldMoviesXML = "";
         const int MovieType = 0;
         const int MusicVideoType = 1;
         const int TVShowsType = 2;
@@ -66,36 +73,40 @@ namespace RemuxMovies
             {TVShowsType, "TV Shows"}
         };
 
-        List<string> ErroredList;        
+        Dictionary<string, string> ErroredList;
         List<string> NoAudioList;
         List<string> SkippedList;
-        List<string> UnusualList;
+        Dictionary<string, string> UnusualList;
         List<string> BadChar;
         List<string> nonChar;
-        List<string> ignoreWords = new List<string>() { "an", "the", "a", "and", "part","&","3d","episode" };
+        List<OldMovie> OldMovies = new List<OldMovie>();
+
+        List<string> ignoreWords = new List<string>() { "an", "the", "a", "and", "part", "&", "3d", "episode" };
 
         Dictionary<string, string> SuccessList;
-        Dictionary<string,string> NoTMBDB;
+        Dictionary<string, string> NoTMBDB;
 
         public MainWindow()
         {
             InitializeComponent();
         }
+
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            SourceXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\SourceDirs.xml");
+            OutputXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\OutputDirs.xml");
+            OldMoviesXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\OldMovies.xml");
+            curYear = DateTime.Today.Year;
+
             await PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " +
                 "convert first English audio to .ac3 and remove all other audio " +
                 "and non-English subtitles. Written by James Gentile.", 0, 2);
-            await PrintToAppOutputBG(Properties.Settings.Default.OldMovies.Count + " movies remembered.", 0, 2);
-            if (Properties.Settings.Default.FirstRun == true)
-            {
-                string str = "First run, saved directories list cleared.";
-                ClearSettings(str);
-            }
-            await LoadDirs();
+
+            await loadFromXML();
+            UpdateRememberedList();
 
             await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.", 0, 1);
-            FFmpeg.ExecutablesPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FFmpeg");
+            FFmpeg.ExecutablesPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RemuxMovies\\FFmpeg\\");
             var ffmpegDir = System.IO.Path.Combine(FFmpeg.ExecutablesPath, "ffmpeg.exe");
             await FFmpeg.GetLatestVersion();
             if (!File.Exists(ffmpegDir))
@@ -105,63 +116,136 @@ namespace RemuxMovies
             }
             ToggleButtons(true);
             await PrintToAppOutputBG("Ready. ", 0, 2, "green");
-            curYear = DateTime.Today.Year;
         }
-
-        private static void ClearSettings(string str)
+        public class OldMovie
         {
-            MessageBox.Show(str);
-            Properties.Settings.Default.OldMovies = new System.Collections.Specialized.StringCollection();
-            Properties.Settings.Default.VidSources = new System.Collections.Specialized.StringCollection();
-            Properties.Settings.Default.VidOutputs = new System.Collections.Specialized.StringCollection();
-            Properties.Settings.Default.FirstRun = false;
-            Properties.Settings.Default.Save();
-            Properties.Settings.Default.Reload();
+            public string Name { get; set; }
+            public int Num { get; set; }
+            public string FullName { get; set; }
+            public string displayName { get; set; }
         }
+        
 
-        private async Task LoadDirs()
+        public void saveToXML()
         {
-            var sources = Properties.Settings.Default.VidSources;
-            if (sources.Count > 0 && (sources.Count % 2) == 0)
+            XmlSerializer serializer = new XmlSerializer(typeof(List<NewDirInfo>));
+            using (StreamWriter streamWriter = new StreamWriter(SourceXML))
             {
-                for (int i = 0; i < sources.Count; i += 2)
+                serializer.Serialize(streamWriter, SourceDirs);
+            }
+            using (StreamWriter streamWriter = new StreamWriter(OutputXML))
+            {
+                serializer.Serialize(streamWriter, OutputDirs);
+            }
+            serializer = new XmlSerializer(typeof(List<string>));
+            using (StreamWriter streamWriter = new StreamWriter(OldMoviesXML))
+            {
+                List<string> om = new List<string>();
+                foreach (var o in OldMovies)
                 {
-                    bool isInt = int.TryParse(sources[i], out int type);
-                    if (isInt == false)
-                    {
-                        ClearSettings("Source settings Invalid, reset.");
-                        break;
-                    }
-                    string dir = sources[i + 1];
-                    await GotSourceDirRun(dir, type);
+                    om.Add(o.FullName);
+                }
+                serializer.Serialize(streamWriter, om);
+            }
+        }
+        public async Task<bool> loadFromXML()
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(List<string>));
+            if (File.Exists(OldMoviesXML))
+            {
+                using (StreamReader streamReader = new StreamReader(OldMoviesXML))
+                {
+                    var om = (List<string>)serializer.Deserialize(streamReader);
+                    addToOldMovies(om);
+                }
+                await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 2);
+            }
+            serializer = new XmlSerializer(typeof(List<NewDirInfo>));
+            if (File.Exists(SourceXML))
+            {
+                using (StreamReader streamReader = new StreamReader(SourceXML))
+                {
+                    List<NewDirInfo> dirs = (List<NewDirInfo>)serializer.Deserialize(streamReader);
+                    await AddSourceDirs(dirs);
                 }
             }
-            var outputs = Properties.Settings.Default.VidOutputs;
-            if (outputs.Count > 0 && (outputs.Count % 2) == 0)
+            if (File.Exists(OutputXML))
             {
-                for (int i = 0; i < outputs.Count; i += 2)
+                using (StreamReader streamReader = new StreamReader(OutputXML))
                 {
-                    bool isInt = int.TryParse(outputs[i], out int type);
-                    if (isInt == false)
+                    List<NewDirInfo> odirs = (List<NewDirInfo>)serializer.Deserialize(streamReader);
+                    foreach (var o in odirs)
                     {
-                        ClearSettings("Output directories setting Invalid, reset.");
-                        break;
+                        ChangeOutputDirRun(o.Name, o.type);
                     }
-                    string dir = outputs[i + 1];
-                    ChangeOutputDirRun(dir, type);
                 }
             }
-            populateInfoLabel();
-            LoadNonChar();
+            await displayFilesToProcess();
+            await LoadNonChar();
+            return true;
         }
+
+        int oldMovMaxLen = 0;
+        private void addToOldMovies(List<string> oldMovList)
+        {
+            int i = 0;
+            foreach (var oldMovItem in oldMovList)
+            {
+                OldMovie oldMovie = new OldMovie();
+                oldMovie.Name = System.IO.Path.GetFileName(oldMovItem);
+                oldMovie.Num = i;
+                oldMovie.FullName = oldMovItem;
+                OldMovies.Add(oldMovie);                
+                if (oldMovie.Name.Length > oldMovMaxLen)
+                {
+                    oldMovMaxLen = oldMovie.Name.Length;
+                }
+                i++;
+            }
+        }
+
         private void populateInfoLabel()
         {
-            int movs = SourceFiles.Where(c => c.type == MovieType && ((c._Remembered & !forceAll) == false)).Count();
-            int musicvideos = SourceFiles.Where(c => c.type == MusicVideoType && ((c._Remembered & !forceAll) == false)).Count();
-            int tvshows = SourceFiles.Where(c => c.type == TVShowsType && ((c._Remembered & !forceAll) == false)).Count();
-            infoLabel.Content = $"{movs} Movies ready to process." + Environment.NewLine +
-                                $"{musicvideos} Music Videos ready to process." + Environment.NewLine +
-                                $"{tvshows} TV Shows ready to process.";
+            populateInfoLabel(out List<NewFileInfo> movsList, out List<NewFileInfo> musicVideosList, out List<NewFileInfo> tvShowsList);
+            return;
+        }
+        private void populateInfoLabel(out List<NewFileInfo> numMovs, out List<NewFileInfo> numMusicVideos, out List<NewFileInfo> numTvShows)
+        {
+            numMovs = SourceFiles.Where(c => c.type == MovieType && ((c._Remembered & !forceAll) == false)).ToList();
+            numMusicVideos = SourceFiles.Where(c => c.type == MusicVideoType && ((c._Remembered & !forceAll) == false)).ToList();
+            numTvShows = SourceFiles.Where(c => c.type == TVShowsType && ((c._Remembered & !forceAll) == false)).ToList();
+            infoLabel.Content = $"{numMovs.Count} Movies ready to process." + Environment.NewLine +
+                                $"{numMusicVideos.Count} Music Videos ready to process." + Environment.NewLine +
+                                $"{numTvShows.Count} TV Shows ready to process.";
+        }
+        private async Task<bool> displayFilesToProcess()
+        {
+            populateInfoLabel(out List<NewFileInfo> movsList, out List<NewFileInfo> musicVideosList, out List<NewFileInfo> tvShowsList);
+            if (movsList.Count > 0)
+            {
+                await PrintToAppOutputBG($"{movsList.Count} Movie(s) to be processed: ", 0, 1);
+                foreach (var f in movsList)
+                {
+                    await PrintToAppOutputBG(f.originalFullName, 0, 1);
+                }
+            }
+            if (musicVideosList.Count > 0)
+            {
+                await PrintToAppOutputBG($"{musicVideosList.Count} Music Video(s) to be processed: ", 0, 1);
+                foreach (var f in musicVideosList)
+                {
+                    await PrintToAppOutputBG(f.originalFullName, 0, 1);
+                }
+            }
+            if (tvShowsList.Count > 0)
+            {
+                await PrintToAppOutputBG($"{tvShowsList.Count} TV Show(s) to be processed: ", 0, 1);
+                foreach (var f in tvShowsList)
+                {
+                    await PrintToAppOutputBG(f.originalFullName, 0, 1);
+                }
+            }
+            return true;
         }
 
         private async void Start_Click(object sender, RoutedEventArgs e)
@@ -173,13 +257,12 @@ namespace RemuxMovies
             await Start_ClickRun(SourceFiles);
             Interlocked.Exchange(ref oneInt, 0);
         }
-        
+
         private async Task Start_ClickRun(List<NewFileInfo> sourceFiles)
         {
             tabControl.SelectedIndex = 0;
             ToggleButtons(false);
-            ConsoleOutput.Clear();
-            AppOutput.Document.Blocks.Clear();
+            ClearWindows();
             if (forceAll == true)
             {
                 await PrintToAppOutputBG("Force mode, ignoring remembered movies.", 0, 2);
@@ -302,7 +385,7 @@ namespace RemuxMovies
             string[] dirFrags = file.originalDirectoryName.Split('\\');
             destName = file.originalName.Substring(0, file.originalName.Length - 4) + ".mkv";
             string destDirName = dirFrags.Last() + ".mkv";
-            
+
             int y = 0;
             int regExIdx = 0;
             bool takeDirName = false;
@@ -324,7 +407,7 @@ namespace RemuxMovies
                         destName = destDirName;
                     }
                 }
-            }            
+            }
             file.destName = destName;
         }
 
@@ -344,23 +427,32 @@ namespace RemuxMovies
             await semaphoreSlim.WaitAsync();
             try
             {
-                //AppOutput.BeginChange();
                 TextRange tr = new TextRange(AppOutput.Document.ContentEnd, AppOutput.Document.ContentEnd);
                 tr.Text = (new string('\r', preNewLines) + str + new string('\r', postNewLines));
                 tr.ApplyPropertyValue(TextElement.ForegroundProperty, bc.ConvertFromString(color));
                 AppScroll.ScrollToEnd();
+
             }
             finally
             {
-                //AppOutput.EndChange();
                 semaphoreSlim.Release();
             }
         }
+        private async void SkipButton_Click(object sender, RoutedEventArgs e)
+        {
+            SkipProcessing = true;
+            await KillFFMpeg();
+        }
         bool AbortProcessing = false;
+        bool SkipProcessing = false;
         private async void Abort_Click(object sender, RoutedEventArgs e)
         {
             AbortProcessing = true;
             GetFiles_Cancel = true;
+            await KillFFMpeg();
+        }
+        private async Task<bool> KillFFMpeg()
+        {
             if (FFMpegProcess != null && FFMpegProcess.HasExited != true)
             {
                 FFMpegProcess.CancelErrorRead();
@@ -372,25 +464,30 @@ namespace RemuxMovies
                 }
                 await PrintToAppOutputBG("FFMpeg process killed.", 0, 1, "red");
             }
+            return true;
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)
+        {
+            ClearWindows();
+        }
+        private void ClearWindows()
         {
             AppOutput.Document.Blocks.Clear();
             ConsoleOutput.Clear();
         }
 
         private async void DisplayOld(object sender, RoutedEventArgs e)
-        {
+        {            
             AppOutput.Document.Blocks.Clear();
             List<string> files = new List<string>();
-            foreach (var o in Properties.Settings.Default.OldMovies)
+            foreach (var o in OldMovies)
             {
-                if (IsTVShow(o).Success)
+                if (IsTVShow(o.Name).Success)
                 {
                     continue;
                 }
-                files.Add(System.IO.Path.GetFileName(o));
+                files.Add(System.IO.Path.GetFileName(o.Name));
             }
             files.Sort();
             foreach (var f in files)
@@ -408,13 +505,16 @@ namespace RemuxMovies
         int LastFrameConsoleOutput = 0;
         bool FoundFrameConsoleOutput = false;
 
+        bool RememberedSearchCleared = false;
+
+        
+
         private void PrintToConsoleOutputBG(string str)
         {
-            Dispatcher.InvokeAsync(() =>
+            ConsoleOutput.Dispatcher.InvokeAsync(() =>
             {
                 PrintToConsoleWorker(str);
             }, DispatcherPriority.Background);
-
         }
 
         private void PrintToConsoleWorker(string str)
@@ -429,29 +529,27 @@ namespace RemuxMovies
                 LastFrameConsoleOutput = ConsoleOutput.Text.Length;
                 FoundFrameConsoleOutput = true;
             }
+            ConsoleOutput.AppendText(str + Environment.NewLine);
             if (!FoundFrameConsoleOutput)
             {
-                ConsoleOutput.Text += str + Environment.NewLine;
                 ConsoleScroll.ScrollToEnd();
-            }
-            else
-            {
-                ConsoleOutput.Text += str;
             }
         }
 
-        private void LoadNonChar()
+        private async Task<bool> LoadNonChar()
         {
             string tmdbfile = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TMDB_API_KEY.txt");
             if (File.Exists(tmdbfile))
             {
                 TMDBAPIKEY = File.ReadAllText(tmdbfile);
-            }            
+                await PrintToAppOutputBG("TMDB Key found.", 0, 1);
+            }
             string file = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NonChar.txt");
             if (File.Exists(file))
             {
                 nonChar = File.ReadAllLines(file).ToList();
-            }            
+            }
+            return true;
         }
 
     }

@@ -13,6 +13,7 @@ namespace RemuxMovies
         string audioLanguage = "";
         private async Task<bool> FindAudioAndSubtitle(NewFileInfo file)
         {
+            string err = "";
             bool foundEngAudio = false;
             bool foundNonEngAudio = false;
             AudioMap = "";
@@ -30,14 +31,16 @@ namespace RemuxMovies
             {
                 if (!streams[x].ContainsKey("index"))
                 {
-                    await PrintToAppOutputBG("Malformed movie data: No index in json element: " + x, 0, 1, "yellow");
-                    UnusualList.Add(file.originalFullName);
+                    err = "Malformed movie data: No index in json element: " + x;
+                    await PrintToAppOutputBG(err, 0, 1, "yellow");
+                    UnusualList.Add(file.originalFullName, err);
                     continue;
                 }
                 if (!streams[x].ContainsKey("codec_type"))
                 {
-                    await PrintToAppOutputBG("Malformed movie data: No codec_type in json element: " + x, 0, 1, "yellow");
-                    UnusualList.Add(file.originalFullName);
+                    err = "Malformed movie data: No codec_type in json element: " + x;
+                    await PrintToAppOutputBG(err, 0, 1, "yellow");
+                    UnusualList.Add(file.originalFullName, err);
                     continue;
                 }
                 string codectype = JsonValue.Parse(streams[x]["codec_type"].ToString());
@@ -51,18 +54,16 @@ namespace RemuxMovies
                             if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("bps-eng"))
                             {
                                 int bitrate = JsonValue.Parse(streams[x]["tags"]["bps-eng"].ToString());
-                                bitrate = bitrate / 1000;
+                                bitrate /= 1000;
                                 VidMap = "-map 0:" + index + " ";
                                 VidMapTo = "libx264 -b:v " + bitrate.ToString() + "k ";
                             }
                             else
-                            {
-                                MessageBox.Show("VC-1 bit rate [tags][bps-eng] not found.");
-                                return false;
-                                //VidMap = "-map 0:" + index + " ";
-                                // VidMapTo = "libx264 -crf 18 ";
+                            {                                
+                                await PrintToAppOutputBG("VC-1 bit rate [tags][bps-eng] not found.",0,1,"yellow");
+                                VidMap = "-map 0:" + index + " ";
+                                VidMapTo = "libx264 -crf 18 ";                                
                             }
-
                             await PrintToAppOutputBG("Video is VC-1, converting to x264 using flags: " + VidMapTo, 0, 1, "yellow");
                         }                        
                         break;
@@ -76,8 +77,9 @@ namespace RemuxMovies
                         {
                             if (streams[x]["tags"]["title"].ToString().ToLower().Contains("commentary"))
                             {
-                                await PrintToAppOutputBG("Unusual movie, commentary is before audio track, index #" + index, 0, 1, "yellow");
-                                UnusualList.Add(file.originalFullName);
+                                err = "Unusual movie, commentary is before audio track, index #" + index;
+                                await PrintToAppOutputBG(err, 0, 1, "yellow");
+                                UnusualList.Add(file.originalFullName, err);
                                 break;
                             }
                         }
@@ -99,8 +101,9 @@ namespace RemuxMovies
                             {
                                 if (language == null || language == "" || language == "und")
                                 {
-                                    await PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index, 0, 1, "yellow");
-                                    UnusualList.Add(file.originalFullName);
+                                    err = "Unusual movie, audio language not defined, index #" + index;
+                                    await PrintToAppOutputBG(err, 0, 1, "yellow");
+                                    UnusualList.Add(file.originalFullName, err);
                                 }
                                 else
                                 {
@@ -116,8 +119,9 @@ namespace RemuxMovies
                         }
                         else
                         {
-                            await PrintToAppOutputBG("Unusual movie, audio language not defined, index #" + index, 0, 1, "yellow");
-                            UnusualList.Add(file.originalFullName);             // no tags or language in tags, probably english.
+                            err = "Unusual movie, audio language not defined, index #" + index;
+                            await PrintToAppOutputBG(err, 0, 1, "yellow");
+                            UnusualList.Add(file.originalFullName, err);             // no tags or language in tags, probably english.
                         }
                         AudioMap = "-map 0:" + index + " ";
                         foundEngAudio = true;

@@ -50,8 +50,7 @@ namespace RemuxMovies
                     return;
                 }
             }            
-            InitLists();
-            Properties.Settings.Default.Reload();
+            InitLists();            
             foreach (var file in processFiles)
             {
                 await PrintToAppOutputBG(file.originalFullName, 0, 1);
@@ -64,8 +63,9 @@ namespace RemuxMovies
                 if (AbortProcessing == true)
                 {
                     AbortProcessing = false;
+                    GetFiles_Cancel = false;
                     break;
-                }                      
+                }                    
                 if (file.type == MusicVideoType)
                 {
                     await createMusicVideoNfo(file);
@@ -74,24 +74,42 @@ namespace RemuxMovies
                 await PrintToAppOutputBG($"Processing video {num} of {total}:" + Environment.NewLine +
                     file.originalFullName + Environment.NewLine +
                     $"Size: {file.length.ToString("N0")} bytes.", 0, 2);
-                bool ret = await processFile(file);
-                if (ret)
+                bool ret = await processFile(file);                
+                file._Remembered = true;
+                Dispatcher.Invoke(() =>
                 {
-                    file._Remembered = true;
-                    Dispatcher.Invoke(() =>
+                    ListViewUpdater();
+                });
+                if (ret)
+                {                            
+                    if (OldMovies.Where(x => x.Name.Equals(file.FullName)).Count() == 0)
                     {
-                        ListViewUpdater();
-                    });
-
-                    if (!Properties.Settings.Default.OldMovies.Contains(file.FullName))
-                    {
-                        Properties.Settings.Default.OldMovies.Add(file.FullName);
-                        Properties.Settings.Default.Save();
+                        OldMovie oldMov = new OldMovie();
+                        oldMov.Name = System.IO.Path.GetFileName(file.FullName);
+                        oldMov.Num = OldMovies.Count;
+                        oldMov.FullName = file.FullName;
+                        OldMovies.Add(oldMov);
+                        if (oldMov.Name.Length > oldMovMaxLen)
+                        {
+                            oldMovMaxLen = oldMov.Name.Length;
+                        }
+                        Dispatcher.Invoke(() => UpdateRememberedList());
+                        saveToXML();
                     }
-                }
+                }   
                 else
                 {
-                    ErroredList.Add(file.originalFullName);
+                    if (AbortProcessing == true)
+                    {
+                        AbortProcessing = false;
+                        GetFiles_Cancel = false;
+                        break;
+                    }
+                    if (SkipProcessing == true)
+                    {
+                        SkipProcessing = false;
+                        continue;
+                    }
                 }
             }
             await displaySummary();
@@ -113,11 +131,11 @@ namespace RemuxMovies
 
         private void InitLists()
         {
-            ErroredList = new List<string>();
+            ErroredList = new Dictionary<string, string>();
             SuccessList = new Dictionary<string, string>();
             NoAudioList = new List<string>();
             SkippedList = new List<string>();
-            UnusualList = new List<string>();
+            UnusualList = new Dictionary<string, string>();
             BadChar = new List<string>();
             NoTMBDB = new Dictionary<string, string>();
             GetFiles_Cancel = false;
@@ -151,16 +169,21 @@ namespace RemuxMovies
 
         private async Task<bool> GetMovInfo(NewFileInfo file)
         {
+            string err = "";
             JsonFFProbe.Clear();
             int exitCode = await RunFFProbe(file.originalFullName);
             if (exitCode != 0)
             {
-                await PrintToAppOutputBG("Error, ffprobe return error code: " + exitCode, 0, 1, "red");
+                err = "Error, ffprobe return error code: " + exitCode;
+                await PrintToAppOutputBG(err, 0, 1, "red");
+                ErroredList.Add(file.originalFullName, err);
                 return false;
             }
             if (JsonFFProbe.Length == 0)
             {
-                await PrintToAppOutputBG("FFProbe returned nothing: " + file.originalFullName, 0, 1,"red");
+                err = "FFProbe returned nothing: " + file.originalFullName;
+                await PrintToAppOutputBG(err, 0, 1,"red");
+                ErroredList.Add(file.originalFullName, err);
                 return false;
             }
             string jsonlen = JsonFFProbe.Length.ToString("N0");
@@ -175,9 +198,7 @@ namespace RemuxMovies
             {
                 bool FindAudioRet = await GetMovInfo(file);
                 if (FindAudioRet == false)
-                {
-                    await PrintToAppOutputBG("Error, No English Audio Found!", 0, 1, "red");
-                    NoAudioList.Add(file.originalFullName);
+                {                    
                     return false;
                 }
                 await PrintToAppOutputBG("Video mapping: " + VidMap, 0, 1);
@@ -196,13 +217,15 @@ namespace RemuxMovies
                 }
                 file.destPath = makePath;
                 string destFullName = System.IO.Path.Combine(makePath, file.destName);
-                string parm = "-threads 6 -y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
+                string parm = "-y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
                               "-c:v " + VidMapTo + "-c:a ac3 -c:s copy " + "\"" + destFullName + "\"";
                 await PrintToAppOutputBG("FFMpeg parms: " + parm, 0, 1);
                 int ExitCode = await RunFFMpeg(parm);
                 if (ExitCode != 0)
                 {
-                    await PrintToAppOutputBG("FFMpeg had a possible problem, exit code: " + ExitCode, 0, 1, "red");
+                    string err = "FFMpeg had a possible problem, exit code: " + ExitCode;
+                    await PrintToAppOutputBG(err, 0, 1, "red");
+                    ErroredList.Add(file.originalFullName, err);
                     return false;
                 }
                 await getTMDB(file);

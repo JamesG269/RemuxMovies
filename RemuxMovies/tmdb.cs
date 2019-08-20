@@ -180,7 +180,7 @@ namespace RemuxMovies
             foreach (var r in regexChecks)
             {
                 regExIdx = file.Length - 6;                
-                while (regExIdx > 6)
+                while (regExIdx > 1)
                 {
                     m = r.Match(file, regExIdx);
                     regExIdx = m.Index - 1;
@@ -498,6 +498,7 @@ namespace RemuxMovies
         }
         private async Task<bool> createMovNfo(NewFileInfo nfi, string nfoStr, string Title, string OriginalTitle, int year)
         {
+            string err = "";
             string nfo = System.IO.Path.Combine(nfi.destPath, nfi.destName.Substring(0, nfi.destName.Length - 4) + ".nfo");
             try
             {
@@ -530,15 +531,17 @@ namespace RemuxMovies
                 }
                 else
                 {
-                    await PrintToAppOutputBG("Movie .nfo file could not be created.", 0, 1, "red");
-                    ErroredList.Add(nfo);
+                    err = "Movie .nfo file could not be created.";
+                    await PrintToAppOutputBG(err, 0, 1, "red");
+                    ErroredList.Add(nfo, err);
                     return false;
                 }
             }
             catch (Exception e)
             {
-                await PrintToAppOutputBG("Exception thrown in createMovNfo(): " + e.InnerException.Message, 0, 1, "Red");
-                ErroredList.Add(nfo);
+                err = "Exception thrown in createMovNfo(): " + e.InnerException.Message;
+                await PrintToAppOutputBG(err, 0, 1, "Red");
+                ErroredList.Add(nfo, err);
                 return false;
             }
         }

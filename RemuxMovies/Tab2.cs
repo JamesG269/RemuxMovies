@@ -30,40 +30,27 @@ namespace RemuxMovies
     public partial class MainWindow : Window
     {
         List<NewDirInfo> SourceDirs = new List<NewDirInfo>();
-        List<NewFileInfo> SourceFiles = new List<NewFileInfo>();
         List<NewDirInfo> OutputDirs = new List<NewDirInfo>();
-        private void SaveSources()
-        {
-            Properties.Settings.Default.VidSources.Clear();
-            foreach (var dir in SourceDirs)
-            {
-                Properties.Settings.Default.VidSources.Add(dir.type.ToString());
-                Properties.Settings.Default.VidSources.Add(dir.Name);
-            }
-            Properties.Settings.Default.Save();
-        }
-        private void SaveOutputs()
-        {
-            Properties.Settings.Default.VidOutputs.Clear();
-            foreach (var dir in OutputDirs)
-            {
-                Properties.Settings.Default.VidOutputs.Add(dir.type.ToString());
-                Properties.Settings.Default.VidOutputs.Add(dir.Name);
-            }
-            Properties.Settings.Default.Save();
-        }
+        List<NewFileInfo> SourceFiles = new List<NewFileInfo>();
+        
         private async void AddMoviesDir_Click(object sender, RoutedEventArgs e)
         {
             await AddDir(MovieType);
+            ClearWindows();
+            await displayFilesToProcess();
         }
 
         private async void AddMusicVideosDir_Click(object sender, RoutedEventArgs e)
         {
             await AddDir(MusicVideoType);
+            ClearWindows();
+            await displayFilesToProcess();
         }
         private async void AddTVShowsFolder(object sender, RoutedEventArgs e)
         {
             await AddDir(TVShowsType);
+            ClearWindows();
+            await displayFilesToProcess();
         }
         private async Task AddDir(int type)
         {
@@ -74,14 +61,13 @@ namespace RemuxMovies
             }
             string VidDir = dialog.SelectedPath;
             await GotSourceDirRun(VidDir, type);
-            SaveSources();
+            saveToXML();
         }
-
-        private async Task GotSourceDirRun(string VidDir, int type)
+        private async Task<bool> GotSourceDirRun(string VidDir, int type)
         {
             if (0 != Interlocked.Exchange(ref oneInt, 1))
             {
-                return;
+                return false;
             }
             if (Directory.Exists(VidDir))
             {
@@ -90,6 +76,7 @@ namespace RemuxMovies
             }
             ListViewUpdater();
             Interlocked.Exchange(ref oneInt, 0);
+            return true;
         }
         private void GotSourceDir(string VidDir, int type)
         {
@@ -112,7 +99,6 @@ namespace RemuxMovies
                 SourceFiles.Add(file);
             }
         }
-
         private Match IsTVShow(string nfi)
         {
             Match m = null;
@@ -126,12 +112,10 @@ namespace RemuxMovies
             }
             return m;
         }
-
         private void ChangeMovieOutputDir(object sender, RoutedEventArgs e)
         {
             ChangeOutputDir(MovieType);
         }
-
         private void ChangeMusicVidOutputDir(object sender, RoutedEventArgs e)
         {
             ChangeOutputDir(MusicVideoType);
@@ -149,7 +133,8 @@ namespace RemuxMovies
             }
             string outputDir = dialog.SelectedPath;
             ChangeOutputDirRun(outputDir, type);
-            SaveOutputs();
+            saveToXML();
+            return;
         }
         private void ChangeOutputDirRun(string outputDir, int type)
         {            
@@ -161,6 +146,7 @@ namespace RemuxMovies
             OutputDirs.Add(temp);
             outputDirListView.ItemsSource = OutputDirs.ToList();            
             ListViewUpdater();
+            return;
         }
 
         private void RemoveMenuItem_Click(object sender, RoutedEventArgs e)
@@ -174,7 +160,7 @@ namespace RemuxMovies
                 fileListView.ItemsSource = new Dictionary<string, string>();
             }
             ListViewUpdater();
-            SaveSources();
+            saveToXML();
         }
 
         private void RemoveFileItem_Click(object sender, RoutedEventArgs e)
@@ -281,12 +267,13 @@ namespace RemuxMovies
                 var list1 = listView.SelectedItems.OfType<NewDirInfo>().ToList();
                 fileListView.ItemsSource = SourceFiles.Where(x => list1.Any(c => x.fromDirectory == c.Name && x.type == c.type)).ToList();
             }
-            UpdateColumnWidths();
+            UpdateColumnWidths(UpdateGrid);
             populateInfoLabel();
+            return;
         }
-        public void UpdateColumnWidths()
+        public void UpdateColumnWidths(Grid gridToUpdate)
         {            
-            foreach (UIElement element in UpdateGrid.Children)
+            foreach (UIElement element in gridToUpdate.Children)
             {
                 element.UpdateLayout();
                 if (element is ListView)
@@ -297,25 +284,27 @@ namespace RemuxMovies
                 }
             }
         }
-        private static void UpdateColumnWidthsRun(GridView gridView)
+        private static void UpdateColumnWidthsRun(GridView gridViewToUpdate)
         {
-            foreach (var column in gridView.Columns)
+            foreach (var column in gridViewToUpdate.Columns)
             {
                 // If this is an "auto width" column...
-                if (double.IsNaN(column.Width))
+                
+                //if (double.IsNaN(column.Width))
                 {
                     // Set its Width back to NaN to auto-size again
                     column.Width = 0;
                     column.Width = double.NaN;
                 }
+                
             }
         }
-        private void ListViewTargetUpdated(ListView listView)
+        private void ListViewTargetUpdated(ListView listViewToUpdate)
         {
             // Get a reference to the ListView's GridView...        
-            if (null != listView)
+            if (null != listViewToUpdate)
             {
-                var gridView = listView.View as GridView;
+                var gridView = listViewToUpdate.View as GridView;
                 if (null != gridView)
                 {
                     // ... and update its column widths
@@ -327,13 +316,19 @@ namespace RemuxMovies
         private async void Reload_Click(object sender, RoutedEventArgs e)
         {
             var dirs = SourceDirs.ToList();
+            ClearWindows();
+            await AddSourceDirs(dirs);
+            await displayFilesToProcess();
+        }
+        private async Task<bool> AddSourceDirs(List<NewDirInfo> dirs)
+        {
             SourceDirs.Clear();
             SourceFiles.Clear();
             foreach (var d in dirs)
             {
                 await GotSourceDirRun(d.Name, d.type);
-            }
+            }                        
+            return true;
         }
-
     }
 }

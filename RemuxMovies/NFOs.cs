@@ -87,6 +87,7 @@ namespace RemuxMovies
         }
         private async Task createMusicVideoNfo(NewFileInfo nfi)
         {
+            string err = "";
             string nfo = System.IO.Path.Combine(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, nfi.originalFullName.Substring(0, nfi.originalFullName.Length - 4) + ".nfo");
             try
             {
@@ -107,14 +108,16 @@ namespace RemuxMovies
                 }
                 else
                 {
-                    await PrintToAppOutputBG("Music Video .nfo file could not be created.", 0, 1, "red");
-                    ErroredList.Add(nfo);
+                    err = "Music Video .nfo file could not be created.";
+                    await PrintToAppOutputBG(err, 0, 1, "red");
+                    ErroredList.Add(nfo, err);
                 }
             }
             catch (Exception e)
             {
-                await PrintToAppOutputBG("Exception thrown in createNfo(): " + e.InnerException.Message, 0, 1, "Red");
-                ErroredList.Add(nfo);
+                err = "Exception thrown in createNfo(): " + e.InnerException.Message;
+                await PrintToAppOutputBG(err, 0, 1, "Red");
+                ErroredList.Add(nfo, err);
             }
         }
     }
