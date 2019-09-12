@@ -41,25 +41,22 @@ namespace RemuxMovies
             {
                 return;
             }
-            var typeList = processFiles.Select(x => x.type).Distinct();
-            foreach (var t in typeList)
-            {
-                if (OutputDirs.Where(x => x.type == t).Count() == 0 || !Directory.Exists(OutputDirs.Where(x => x.type == t).First().Name))
-                {
-                    await PrintToAppOutputBG("Output Directory does not exist for type: " + typeFriendlyName[t], 0, 1, "red");             
-                    return;
-                }
-            }            
+            var typeList = processFiles.Select(x => x.type).Distinct();            
             InitLists();            
-            foreach (var file in processFiles)
-            {
-                await PrintToAppOutputBG(file.originalFullName, 0, 1);
-            }
+            
+            
             await PrintToAppOutputBG(" ", 0, 1);
             int num = 0;
             int total = processFiles.Count();
             foreach (var file in processFiles)
             {
+                await PrintToAppOutputBG(file.originalFullPath, 0, 1);
+                var dirs = SourceDirs.Where(x => x.type == file.type && x.Directory == file.Directory);
+                if (dirs.Count() != 1)
+                {
+                    await PrintToAppOutputBG("Output Directory does not exist for type: " + typeFriendlyName[file.type], 0, 1, "red");
+                    continue;
+                }
                 if (AbortProcessing == true)
                 {
                     AbortProcessing = false;
@@ -68,11 +65,12 @@ namespace RemuxMovies
                 }                    
                 if (file.type == MusicVideoType)
                 {
+                    file.destPath = dirs.First().Directory;
                     await createMusicVideoNfo(file);
                 }
                 num++;
                 await PrintToAppOutputBG($"Processing video {num} of {total}:" + Environment.NewLine +
-                    file.originalFullName + Environment.NewLine +
+                    file.originalFullPath + Environment.NewLine +
                     $"Size: {file.length.ToString("N0")} bytes.", 0, 2);
                 bool ret = await processFile(file);                
                 file._Remembered = true;
@@ -82,17 +80,13 @@ namespace RemuxMovies
                 });
                 if (ret)
                 {                            
-                    if (OldMovies.Where(x => x.Name.Equals(file.FullName)).Count() == 0)
+                    if (OldMovies.Where(x => x.FileName.Equals(file.FullPath)).Count() == 0)
                     {
                         OldMovie oldMov = new OldMovie();
-                        oldMov.Name = System.IO.Path.GetFileName(file.FullName);
+                        oldMov.FileName = System.IO.Path.GetFileName(file.FullPath);
                         oldMov.Num = OldMovies.Count;
-                        oldMov.FullName = file.FullName;
-                        OldMovies.Add(oldMov);
-                        if (oldMov.Name.Length > oldMovMaxLen)
-                        {
-                            oldMovMaxLen = oldMov.Name.Length;
-                        }
+                        oldMov.FullPath = file.FullPath;
+                        OldMovies.Add(oldMov);                        
                         Dispatcher.Invoke(() => UpdateRememberedList());
                         saveToXML();
                     }
@@ -171,19 +165,19 @@ namespace RemuxMovies
         {
             string err = "";
             JsonFFProbe.Clear();
-            int exitCode = await RunFFProbe(file.originalFullName);
+            int exitCode = await RunFFProbe(file.originalFullPath);
             if (exitCode != 0)
             {
                 err = "Error, ffprobe return error code: " + exitCode;
                 await PrintToAppOutputBG(err, 0, 1, "red");
-                ErroredList.Add(file.originalFullName, err);
+                ErroredListAdd(file.originalFullPath, err);
                 return false;
             }
             if (JsonFFProbe.Length == 0)
             {
-                err = "FFProbe returned nothing: " + file.originalFullName;
+                err = "FFProbe returned nothing: " + file.originalFullPath;
                 await PrintToAppOutputBG(err, 0, 1,"red");
-                ErroredList.Add(file.originalFullName, err);
+                ErroredListAdd(file.originalFullPath, err);
                 return false;
             }
             string jsonlen = JsonFFProbe.Length.ToString("N0");
@@ -206,7 +200,13 @@ namespace RemuxMovies
                 await PrintToAppOutputBG("Audio mapping: " + AudioMap, 0, 1);
                 await PrintToAppOutputBG("Subtitle mapping: " + SubMap, 0, 1);
 
-                string makePath = OutputDirs.Where(x => x.type == file.type).First().Name;
+                var dirs = SourceDirs.Where(x => x.type == file.type && x.Directory == file.Directory);
+                if (dirs.Count() != 1)
+                {
+                    await PrintToAppOutputBG("Output Directory does not exist for type: " + typeFriendlyName[file.type], 0, 1, "red");
+                    return false;
+                }
+                string makePath = dirs.First().Directory;
                 if (file.type == TVShowsType)
                 {
                     makePath = System.IO.Path.Combine(makePath, file.destPath);
@@ -217,7 +217,7 @@ namespace RemuxMovies
                 }
                 file.destPath = makePath;
                 string destFullName = System.IO.Path.Combine(makePath, file.destName);
-                string parm = "-y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullName + "\" " + VidMap + AudioMap + SubMap +
+                string parm = "-y -analyzeduration 2147483647 -probesize 2147483647 -i " + "\"" + file.originalFullPath + "\" " + VidMap + AudioMap + SubMap +
                               "-c:v " + VidMapTo + "-c:a ac3 -c:s copy " + "\"" + destFullName + "\"";
                 await PrintToAppOutputBG("FFMpeg parms: " + parm, 0, 1);
                 int ExitCode = await RunFFMpeg(parm);
@@ -225,11 +225,12 @@ namespace RemuxMovies
                 {
                     string err = "FFMpeg had a possible problem, exit code: " + ExitCode;
                     await PrintToAppOutputBG(err, 0, 1, "red");
-                    ErroredList.Add(file.originalFullName, err);
+                    ErroredListAdd(file.originalFullPath, err);
                     return false;
                 }
-                await getTMDB(file);
-                SuccessList.Add(file.originalFullName, file.destName);
+                string nfoFile = System.IO.Path.Combine(file.destPath, file.destName.Substring(0, file.destName.Length - 4) + ".nfo");
+                await getTMDB(file, nfoFile);
+                SuccessListAdd(file.originalFullPath, file.destName);
                 return true;
             }
             catch (Exception e)

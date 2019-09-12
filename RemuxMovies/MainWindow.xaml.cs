@@ -8,6 +8,8 @@ using System.Json;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -36,6 +38,8 @@ namespace RemuxMovies
     /// </summary>
     public partial class MainWindow : Window
     {
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
         string AudioMap, SubMap, VidMap, VidMapTo = "";
         string TMDBAPIKEY = "";
 
@@ -60,17 +64,22 @@ namespace RemuxMovies
                                           "h.264","h.265","1080p","1080i","720p","2160p","web.dl","unrated","theatrical","extended","dvd","dd5","directors","director's","remastered",
                                           "uhd","hdr","sdr","4k","atmos","webrip","amzn",
         };
+        string[] VidExts = { ".mkv", ".mp4", ".avi", ".m4v", ".wmv" };
         string SourceXML = "";
-        string OutputXML = "";
         string OldMoviesXML = "";
+        string HardLinksXML = "";
         const int MovieType = 0;
         const int MusicVideoType = 1;
         const int TVShowsType = 2;
+        const int NfoType = 3;
+        const int HardlinkType = 4;
         public static Dictionary<int, string> typeFriendlyName = new Dictionary<int, string>()
         {
             {MovieType, "Movies" },
             {MusicVideoType, "Music Videos"},
-            {TVShowsType, "TV Shows"}
+            {TVShowsType, "TV Shows"},
+            {NfoType, "Nfo's" },
+            {HardlinkType, "Hardlinks" }
         };
 
         Dictionary<string, string> ErroredList;
@@ -80,6 +89,7 @@ namespace RemuxMovies
         List<string> BadChar;
         List<string> nonChar;
         List<OldMovie> OldMovies = new List<OldMovie>();
+        List<OldHardLink> OldHardLinks = new List<OldHardLink>();
 
         List<string> ignoreWords = new List<string>() { "an", "the", "a", "and", "part", "&", "3d", "episode" };
 
@@ -93,9 +103,9 @@ namespace RemuxMovies
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            SourceXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\SourceDirs.xml");
-            OutputXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\OutputDirs.xml");
+            SourceXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\SourceDirs.xml");            
             OldMoviesXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\OldMovies.xml");
+            HardLinksXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\HardLinks.xml");
             curYear = DateTime.Today.Year;
 
             await PrintToAppOutputBG("MovieRemux v1.1 - Remux movies using FFMpeg (and FFProbe for movie data) to " +
@@ -103,28 +113,124 @@ namespace RemuxMovies
                 "and non-English subtitles. Written by James Gentile.", 0, 2);
 
             await loadFromXML();
+            await Task.Run(() => AddMovieNames());
             UpdateRememberedList();
 
             await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.", 0, 1);
             FFmpeg.ExecutablesPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RemuxMovies\\FFmpeg\\");
             var ffmpegDir = System.IO.Path.Combine(FFmpeg.ExecutablesPath, "ffmpeg.exe");
-            await FFmpeg.GetLatestVersion();
+            try
+            {
+                await FFmpeg.GetLatestVersion();
+            }
+            catch
+            {
+                await PrintToAppOutputBG("Error checking for FFMpeg update.", 0, 1, "red");
+            }
             if (!File.Exists(ffmpegDir))
             {
                 MessageBox.Show("FFMpeg/FFProbe not found at: " + ffmpegDir);
-                Close();
+                //Close();
+            }            
+            await PrintToAppOutputBG("Ready. ", 0, 2, "green");
+            if (await CheckAutoJob() == true)
+            {
+                //Close();
             }
             ToggleButtons(true);
-            await PrintToAppOutputBG("Ready. ", 0, 2, "green");
+        }
+
+        private void AddMovieNames()
+        {
+            bool save = false;
+            foreach (var mov in OldMovies)
+            {
+                if (!string.IsNullOrWhiteSpace(mov.MovieName))
+                {
+                    continue;
+                }
+                save = true;
+                mov.MovieName = AddMovieName(mov.FileName);
+            }
+            foreach (var mov in OldHardLinks)
+            {
+                if (!string.IsNullOrWhiteSpace(mov.MovieName))
+                {
+                    continue;
+                }
+                save = true;
+                mov.MovieName = AddMovieName(System.IO.Path.GetFileName(mov.TargetFullPath));
+            }
+            if (save == true)
+            {
+                saveToXML();
+            }
+        }
+        private string AddMovieName(string fileName)
+        {
+            fileName = fileName.ToLower();
+            fileName = fileName.Substring(0, fileName.Length - 4);
+            int fileYear = 0;
+            int regExIdx = 0;
+            bool foundYear = GetFileYear(ref fileName, ref fileYear, ref regExIdx);
+            if (foundYear)
+            {
+                fileName = fileName.Substring(0, regExIdx);
+            }
+            fileName = removeVidTags(fileName);
+            List<string> fileNameParts = new List<string>();
+            getFileNameParts(fileName, fileNameParts);
+            string retStr = string.Join(" ", fileNameParts);
+            if (foundYear)
+            {
+                retStr += " (" + fileYear + ")";
+            }
+            return retStr;
+        }
+        private async Task<bool> CheckAutoJob()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Count() < 2)
+            {
+                return false;
+            }
+            bool doAutoJob = false;            
+            for (int i = 1; i < args.Count(); i++)
+            {
+                if (string.Compare(args[i], "/auto", true) == 0 || string.Compare(args[i], "-auto", true) == 0)
+                {
+                    doAutoJob = true;
+                }
+            }            
+            if (doAutoJob)
+            {                
+                await Task.Run(() => MakeHardlinks());                
+                await MakeNfos();
+                ToggleButtons(false);
+                await Task.Run(() => CheckNfoDupes());                             
+            }
+            return true;
         }
         public class OldMovie
         {
-            public string Name { get; set; }
+            public string FileName { get; set; }
             public int Num { get; set; }
-            public string FullName { get; set; }
+            public string FullPath { get; set; }
             public string displayName { get; set; }
+            public string MovieName { get; set; }
         }
-        
+
+        public class OldHardLink
+        {
+            public string TargetFullPath { get; set; }
+            public int Num { get; set; }
+            public string displayFullPath { get; set; }
+            public string SourceFullPath { get; set; }
+            public string SourceDir { get; set; }
+            public string MovieName { get; set; }
+        }
+
+
 
         public void saveToXML()
         {
@@ -133,32 +239,37 @@ namespace RemuxMovies
             {
                 serializer.Serialize(streamWriter, SourceDirs);
             }
-            using (StreamWriter streamWriter = new StreamWriter(OutputXML))
-            {
-                serializer.Serialize(streamWriter, OutputDirs);
-            }
-            serializer = new XmlSerializer(typeof(List<string>));
+
+            serializer = new XmlSerializer(typeof(List<OldMovie>));
             using (StreamWriter streamWriter = new StreamWriter(OldMoviesXML))
+            {                
+                serializer.Serialize(streamWriter, OldMovies);
+            }
+            serializer = new XmlSerializer(typeof(List<OldHardLink>));
+            using (StreamWriter streamWriter = new StreamWriter(HardLinksXML))
             {
-                List<string> om = new List<string>();
-                foreach (var o in OldMovies)
-                {
-                    om.Add(o.FullName);
-                }
-                serializer.Serialize(streamWriter, om);
+                serializer.Serialize(streamWriter, OldHardLinks);
             }
         }
         public async Task<bool> loadFromXML()
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(List<string>));
+            XmlSerializer serializer = new XmlSerializer(typeof(List<OldMovie>));
             if (File.Exists(OldMoviesXML))
             {
                 using (StreamReader streamReader = new StreamReader(OldMoviesXML))
                 {
-                    var om = (List<string>)serializer.Deserialize(streamReader);
-                    addToOldMovies(om);
+                    OldMovies = (List<OldMovie>)serializer.Deserialize(streamReader);                    
                 }
                 await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 2);
+            }
+            serializer = new XmlSerializer(typeof(List<OldHardLink>));
+            if (File.Exists(HardLinksXML))
+            {
+                using (StreamReader streamReader = new StreamReader(HardLinksXML))
+                {
+                    OldHardLinks = (List<OldHardLink>)serializer.Deserialize(streamReader);
+                }
+                await PrintToAppOutputBG(OldHardLinks.Count + " HardLinks remembered.", 0, 2);
             }
             serializer = new XmlSerializer(typeof(List<NewDirInfo>));
             if (File.Exists(SourceXML))
@@ -169,64 +280,36 @@ namespace RemuxMovies
                     await AddSourceDirs(dirs);
                 }
             }
-            if (File.Exists(OutputXML))
-            {
-                using (StreamReader streamReader = new StreamReader(OutputXML))
-                {
-                    List<NewDirInfo> odirs = (List<NewDirInfo>)serializer.Deserialize(streamReader);
-                    foreach (var o in odirs)
-                    {
-                        ChangeOutputDirRun(o.Name, o.type);
-                    }
-                }
-            }
+
             await displayFilesToProcess();
             await LoadNonChar();
             return true;
         }
 
-        int oldMovMaxLen = 0;
-        private void addToOldMovies(List<string> oldMovList)
-        {
-            int i = 0;
-            foreach (var oldMovItem in oldMovList)
-            {
-                OldMovie oldMovie = new OldMovie();
-                oldMovie.Name = System.IO.Path.GetFileName(oldMovItem);
-                oldMovie.Num = i;
-                oldMovie.FullName = oldMovItem;
-                OldMovies.Add(oldMovie);                
-                if (oldMovie.Name.Length > oldMovMaxLen)
-                {
-                    oldMovMaxLen = oldMovie.Name.Length;
-                }
-                i++;
-            }
-        }
-
         private void populateInfoLabel()
         {
-            populateInfoLabel(out List<NewFileInfo> movsList, out List<NewFileInfo> musicVideosList, out List<NewFileInfo> tvShowsList);
+            populateInfoLabel(out List<NewFileInfo> movsList, out List<NewFileInfo> musicVideosList, out List<NewFileInfo> tvShowsList, out List<NewFileInfo> hardLinkList);
             return;
         }
-        private void populateInfoLabel(out List<NewFileInfo> numMovs, out List<NewFileInfo> numMusicVideos, out List<NewFileInfo> numTvShows)
+        private void populateInfoLabel(out List<NewFileInfo> numMovs, out List<NewFileInfo> numMusicVideos, out List<NewFileInfo> numTvShows, out List<NewFileInfo> hardLinkList)
         {
             numMovs = SourceFiles.Where(c => c.type == MovieType && ((c._Remembered & !forceAll) == false)).ToList();
             numMusicVideos = SourceFiles.Where(c => c.type == MusicVideoType && ((c._Remembered & !forceAll) == false)).ToList();
             numTvShows = SourceFiles.Where(c => c.type == TVShowsType && ((c._Remembered & !forceAll) == false)).ToList();
+            hardLinkList = SourceFiles.Where(c => c.type == HardlinkType && ((c._Remembered & !forceAll) == false)).ToList();
             infoLabel.Content = $"{numMovs.Count} Movies ready to process." + Environment.NewLine +
                                 $"{numMusicVideos.Count} Music Videos ready to process." + Environment.NewLine +
                                 $"{numTvShows.Count} TV Shows ready to process.";
         }
         private async Task<bool> displayFilesToProcess()
         {
-            populateInfoLabel(out List<NewFileInfo> movsList, out List<NewFileInfo> musicVideosList, out List<NewFileInfo> tvShowsList);
+            populateInfoLabel(out List<NewFileInfo> movsList, out List<NewFileInfo> musicVideosList, out List<NewFileInfo> tvShowsList, out List<NewFileInfo> hardLinkList);
             if (movsList.Count > 0)
             {
                 await PrintToAppOutputBG($"{movsList.Count} Movie(s) to be processed: ", 0, 1);
                 foreach (var f in movsList)
                 {
-                    await PrintToAppOutputBG(f.originalFullName, 0, 1);
+                    await PrintToAppOutputBG(f.originalFullPath, 0, 1);
                 }
             }
             if (musicVideosList.Count > 0)
@@ -234,7 +317,7 @@ namespace RemuxMovies
                 await PrintToAppOutputBG($"{musicVideosList.Count} Music Video(s) to be processed: ", 0, 1);
                 foreach (var f in musicVideosList)
                 {
-                    await PrintToAppOutputBG(f.originalFullName, 0, 1);
+                    await PrintToAppOutputBG(f.originalFullPath, 0, 1);
                 }
             }
             if (tvShowsList.Count > 0)
@@ -242,7 +325,15 @@ namespace RemuxMovies
                 await PrintToAppOutputBG($"{tvShowsList.Count} TV Show(s) to be processed: ", 0, 1);
                 foreach (var f in tvShowsList)
                 {
-                    await PrintToAppOutputBG(f.originalFullName, 0, 1);
+                    await PrintToAppOutputBG(f.originalFullPath, 0, 1);
+                }
+            }
+            if (hardLinkList.Count > 0)
+            {
+                await PrintToAppOutputBG($"{hardLinkList.Count} Hard Links to be processed: ", 0, 1);
+                foreach (var f in hardLinkList)
+                {
+                    await PrintToAppOutputBG(f.originalFullPath, 0, 1);
                 }
             }
             return true;
@@ -277,98 +368,11 @@ namespace RemuxMovies
             MakeNfosButton.IsEnabled = t;
             ReloadButton.IsEnabled = t;
             stackPanel.IsEnabled = t;
+            MakeHardLinksButton.IsEnabled = t;
         }
 
         public int oneInt = 0;
 
-        public class NewFileInfo
-        {
-            public string originalFullName;
-            private string _originalName;
-            public string originalName
-            {
-                get
-                {
-                    return _originalName;
-                }
-                set
-                {
-                    _originalName = value;
-                }
-            }
-
-            public string originalDirectoryName;
-            public long length;
-            public string FullName;
-            public string Name;
-            public string DirectoryName;
-            public string fromDirectory;
-            public int type; // movies = 0; musicvideos = 1; TV Shows = 2            
-            private string _destName;
-            public string destName
-            {
-                get
-                {
-                    return _destName;
-                }
-                set
-                {
-                    _destName = value;
-                }
-            }
-
-            public bool _Remembered;
-            public string Remembered
-            {
-                get
-                {
-                    return _Remembered.ToString();
-                }
-            }
-            public string destPath;
-            public string FriendlyType
-            {
-                get
-                {
-                    return typeFriendlyName[type];
-                }
-            }
-        }
-        public class NewDirInfo
-        {
-            private string _Name;
-            private int _type;
-            public Boolean Process = true;
-            public string Name
-            {
-                get
-                {
-                    return _Name;
-                }
-                set
-                {
-                    _Name = value;
-                }
-            }
-            public int type
-            {
-                get
-                {
-                    return _type;
-                }
-                set
-                {
-                    _type = value;
-                }
-            }
-            public string FriendlyType
-            {
-                get
-                {
-                    return typeFriendlyName[_type];
-                }
-            }
-        }
         private void ConstructName(NewFileInfo file, Match TVShowM)
         {
             string destName;
@@ -382,7 +386,7 @@ namespace RemuxMovies
 
             // if regular movie, this tries to find the more complete name from the directory, as some movies are in the form \Movie.Year.mkv\mov.mkv or some varient of this.
 
-            string[] dirFrags = file.originalDirectoryName.Split('\\');
+            string[] dirFrags = file.originalDirectory.Split('\\');
             destName = file.originalName.Substring(0, file.originalName.Length - 4) + ".mkv";
             string destDirName = dirFrags.Last() + ".mkv";
 
@@ -401,7 +405,7 @@ namespace RemuxMovies
                 }
                 if (takeDirName)
                 {
-                    var tempList = GetFiles(file.DirectoryName, "*.mkv;");
+                    var tempList = GetFiles(file.Directory, file.type, VidExts);
                     if (tempList.Count == 1)
                     {
                         destName = destDirName;
@@ -413,7 +417,7 @@ namespace RemuxMovies
 
         private async Task PrintToAppOutputBG(string str, int preNewLines, int postNewLines, string color = "White")
         {
-            await Dispatcher.InvokeAsync(async () =>
+            await Dispatcher.Invoke(async () =>
             {
                 await PrintToAppOutputThread(str, preNewLines, postNewLines, color);
             }, DispatcherPriority.Background);
@@ -431,7 +435,6 @@ namespace RemuxMovies
                 tr.Text = (new string('\r', preNewLines) + str + new string('\r', postNewLines));
                 tr.ApplyPropertyValue(TextElement.ForegroundProperty, bc.ConvertFromString(color));
                 AppScroll.ScrollToEnd();
-
             }
             finally
             {
@@ -478,16 +481,16 @@ namespace RemuxMovies
         }
 
         private async void DisplayOld(object sender, RoutedEventArgs e)
-        {            
+        {
             AppOutput.Document.Blocks.Clear();
             List<string> files = new List<string>();
             foreach (var o in OldMovies)
             {
-                if (IsTVShow(o.Name).Success)
+                if (IsTVShow(o.FileName).Success)
                 {
                     continue;
                 }
-                files.Add(System.IO.Path.GetFileName(o.Name));
+                files.Add(System.IO.Path.GetFileName(o.FileName));
             }
             files.Sort();
             foreach (var f in files)
@@ -507,7 +510,159 @@ namespace RemuxMovies
 
         bool RememberedSearchCleared = false;
 
-        
+        private async void MakeHardLinksButton_Click(object sender, RoutedEventArgs e)
+        {
+            tabControl.SelectedIndex = 0;
+            ToggleButtons(true);
+            await Task.Run(() => MakeHardlinks());
+            ToggleButtons(false);
+        }
+        private async Task<bool> MakeHardlinks()
+        {           
+            int num = 0;
+
+            foreach (var OldHL in OldHardLinks.ToList())
+            {
+                if (!File.Exists(OldHL.TargetFullPath))
+                {
+                    OldHardLinks.Remove(OldHL);
+                    continue;
+                }
+                if (SourceDirs.Where(x => x.type == HardlinkType && x.Directory.Equals(OldHL.SourceDir)).Count() == 0)
+                {
+                    continue;
+                }
+                if (File.Exists(OldHL.SourceFullPath))
+                {
+                    continue;
+                }
+                File.Delete(OldHL.TargetFullPath);
+                await PrintToAppOutputBG("Deleted hardlink: " + OldHL.TargetFullPath, 0, 1);
+                OldHardLinks.Remove(OldHL);
+            }
+
+            var hlSourceFiles = SourceFiles.Where(x => x.type == HardlinkType && x._Remembered == false).ToList();
+            foreach (var hlSourceFile in hlSourceFiles)
+            {
+                var dirs = SourceDirs.Where(x => x.type == HardlinkType && x.Directory == hlSourceFile.fromDirectory);
+                if (dirs.Count() != 1)
+                {
+                    continue;
+                }                
+                var dir = dirs.First();
+                string hlTargetFile = System.IO.Path.Combine(dir.OutputDir, hlSourceFile.FileName);
+                if (File.Exists(hlTargetFile))
+                {
+                    await PrintToAppOutputBG("Hardlink already exists: " + hlTargetFile, 0, 1, "red");
+                    hlSourceFile._Remembered = true;
+                    AddHardLink(hlSourceFile, hlTargetFile);
+                    continue;
+                }
+                bool result = CreateHardLink(hlTargetFile, hlSourceFile.originalFullPath, IntPtr.Zero);
+                if (result && File.Exists(hlTargetFile))
+                {
+                    num++;
+                    await PrintToAppOutputBG(hlTargetFile + " hardlinked to source: " + hlSourceFile.originalFullPath, 0, 1, "lightgreen");
+                    hlSourceFile._Remembered = true;
+                    AddHardLink(hlSourceFile, hlTargetFile);
+                }
+                else
+                {
+                    await PrintToAppOutputBG(hlTargetFile + " NOT hardlinked to source: " + hlSourceFile.originalFullPath, 0, 1, "red");
+                    hlSourceFile._Remembered = false;
+                }
+            }
+            Dispatcher.Invoke(() => UpdateRememberedList());
+            await PrintToAppOutputBG(num.ToString() + " hard links created.", 0, 1);
+            saveToXML();
+            return true;
+        }
+
+        private void AddHardLink(NewFileInfo hlSourceFile, string hlTargetFile)
+        {
+            OldHardLink oldHL = new OldHardLink();
+            oldHL.TargetFullPath = hlTargetFile.ToLower();
+            oldHL.Num = OldHardLinks.Count;
+            oldHL.SourceDir = hlSourceFile.originalDirectory.ToLower();
+            oldHL.SourceFullPath = hlSourceFile.originalFullPath.ToLower();
+            oldHL.MovieName = AddMovieName(hlSourceFile.FileName);
+            if (OldHardLinks.Where(x => x.SourceFullPath == hlSourceFile.FullPath).Count() == 0)
+            {
+                OldHardLinks.Add(oldHL);                
+            }
+            
+        }
+
+        private async void CheckNfoDupesButton_Click(object sender, RoutedEventArgs e)
+        {
+            tabControl.SelectedIndex = 0;
+            await Task.Run(() => CheckNfoDupes());
+        }
+        private async Task<bool> CheckNfoDupes()
+        {
+            Dispatcher.Invoke(() => ClearWindows());
+            Dictionary<byte[], List<string>> HashName = new Dictionary<byte[], List<string>>();
+            List<NewFileInfo> nfoFiles = new List<NewFileInfo>();
+
+            foreach (var dir in SourceDirs.Where(x => x.type == NfoType))
+            {
+                nfoFiles.AddRange(GetFiles(dir.Directory, NfoType, new string[] { "*.nfo" }));
+            }
+            if (nfoFiles.Count() == 0)
+            {
+                await PrintToAppOutputBG("No .nfo files found.", 0, 1);
+                return false;
+            }
+            
+            using (SHA512 sha512 = new SHA512Managed())
+            {
+                foreach (var nfoFile in nfoFiles)
+                {                    
+                    bool foundVid = false;
+                    foreach (var ext in VidExts)
+                    {
+                        var vidFile = nfoFile.originalFullPath.Substring(0, nfoFile.originalFullPath.Length - 4) + ext;
+                        if (File.Exists(vidFile))
+                        {
+                            foundVid = true;
+                        }
+                    }
+                    if (foundVid == false)
+                    {
+                        File.Delete(nfoFile.originalFullPath);
+                        await PrintToAppOutputBG("Lone .nfo file deleted: " + nfoFile.originalFullPath, 0, 1, "yellow");                        
+                        continue;
+                    }
+                    using (FileStream fs = new FileStream(nfoFile.originalFullPath, FileMode.Open))
+                    using (BufferedStream bs = new BufferedStream(fs))
+                    {
+                        byte[] hash = sha512.ComputeHash(bs);
+                        /*
+                        StringBuilder formatted = new StringBuilder(2 * hash.Length);
+                        foreach (byte b in hash)
+                        {
+                            formatted.AppendFormat("{0:X2}", b);
+                        }
+                        string hashstr = formatted.ToString();*/
+
+                        if (!HashName.ContainsKey(hash))
+                        {
+                            HashName.Add(hash, new List<string>());
+                        }
+                        HashName[hash].Add(nfoFile.originalFullPath);
+                    }
+                }
+            }
+            foreach (var h in HashName)
+            {
+                if (h.Value.Count > 1)
+                {
+                    await displayList(h.Value, " matches in dupe group: ", "white");
+                }
+            }
+            return true;
+        }
+
 
         private void PrintToConsoleOutputBG(string str)
         {

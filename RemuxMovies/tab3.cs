@@ -37,31 +37,62 @@ namespace RemuxMovies
     public partial class MainWindow : Window
     {
         public void UpdateRememberedList()
-        {            
-            foreach (var o in OldMovies)
-            {
-                string name = o.Name;
-                if (name.Length < oldMovMaxLen)
+        {
+            List<OldMovie> oldMovieList = new List<OldMovie>();
+            copyOldMoviesList(oldMovieList);            
+            var longest = oldMovieList.Aggregate((max, cur) => max.MovieName.Length > cur.MovieName.Length ? max : cur).MovieName.Length;
+            foreach (var o in oldMovieList)
+            {                
+                string name = o.MovieName.ToLower();
+                if (name.Length < longest)
                 {
-                    name += new string(' ', oldMovMaxLen - name.Length);
+                    name += new string(' ', longest - name.Length);
                 }
-                o.displayName = name;
+                o.MovieName = name;
             }
             RememberedListBox.BeginInit();
-            RememberedListBox.ItemsSource = OldMovies;
+            RememberedListBox.ItemsSource = oldMovieList;
             RememberedListBox.EndInit();
             CollectionView view = (CollectionView)CollectionViewSource.GetDefaultView(RememberedListBox.ItemsSource);
             view.Filter = RememberedListFilter;
-            UpdateColumnWidths(RememberedGrid);
-            
+            UpdateColumnWidths(RememberedGrid);            
             RememberedListBox.Items.Refresh();
+        }
+        
+        private void copyOldMoviesList(List<OldMovie> oldMovieList)
+        {
+            int num = 0;            
+            foreach (var hl in OldHardLinks)
+            {                
+                if (oldMovieList.Where(x => x.MovieName == hl.MovieName).Count() > 0)
+                {
+                    continue;
+                }
+                OldMovie oldMovieHardLink = new OldMovie();
+                oldMovieHardLink.FileName = System.IO.Path.GetFileName(hl.SourceFullPath);
+                oldMovieHardLink.Num = num;
+                oldMovieHardLink.MovieName = hl.MovieName;
+                num++;
+                oldMovieList.Add(oldMovieHardLink);
+            }
+
+            foreach (var oldMov in OldMovies)
+            {
+                if (oldMovieList.Where(x => x.MovieName == oldMov.MovieName).Count() > 0)
+                {
+                    continue;
+                }
+                oldMov.Num = num;
+                num++;
+                oldMovieList.Add(oldMov);
+            }
         }
         private bool RememberedListFilter(object item)
         {
-            if (!RememberedSearchCleared || String.IsNullOrEmpty(RememberedSearch.Text))
+            if (!RememberedSearchCleared || String.IsNullOrWhiteSpace(RememberedSearch.Text))
                 return true;
             else
-                return ((item as OldMovie).Name.IndexOf(RememberedSearch.Text, StringComparison.OrdinalIgnoreCase) >= 0);
+                return ((item as OldMovie).MovieName.IndexOf(RememberedSearch.Text, StringComparison.OrdinalIgnoreCase) >= 0);
         }
         private void RememberedSearch_MouseDown(object sender, MouseButtonEventArgs e)
         {

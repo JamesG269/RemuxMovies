@@ -30,9 +30,14 @@ namespace RemuxMovies
     public partial class MainWindow : Window
     {
         List<NewDirInfo> SourceDirs = new List<NewDirInfo>();
-        List<NewDirInfo> OutputDirs = new List<NewDirInfo>();
         List<NewFileInfo> SourceFiles = new List<NewFileInfo>();
-        
+
+        private async void AddHardlinkButton_Click(object sender, RoutedEventArgs e)
+        {
+            await AddDir(HardlinkType);
+            ClearWindows();
+            await displayFilesToProcess();
+        }
         private async void AddMoviesDir_Click(object sender, RoutedEventArgs e)
         {
             await AddDir(MovieType);
@@ -52,52 +57,67 @@ namespace RemuxMovies
             ClearWindows();
             await displayFilesToProcess();
         }
+        private async void AddNfosFolder(object sender, RoutedEventArgs e)
+        {
+            await AddDir(NfoType);
+            ClearWindows();
+            await displayFilesToProcess();
+        }
         private async Task AddDir(int type)
         {
             var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
+            dialog.UseDescriptionForTitle = true;
+            dialog.Description = "Input Folder";
             if (dialog.ShowDialog() == false)
             {
                 return;
             }
             string VidDir = dialog.SelectedPath;
-            await GotSourceDirRun(VidDir, type);
+            dialog.Description = "Output Folder";            
+            if (dialog.ShowDialog() == false)
+            {
+                return;
+            }
+            string OutputDir = dialog.SelectedPath;
+            await GotSourceDirRun(VidDir, type, OutputDir);
             saveToXML();
         }
-        private async Task<bool> GotSourceDirRun(string VidDir, int type)
+        private async Task<bool> GotSourceDirRun(string VidDir, int type, string OutputDir)
         {
             if (0 != Interlocked.Exchange(ref oneInt, 1))
             {
                 return false;
             }
-            if (Directory.Exists(VidDir))
-            {
-                await Task.Run(() => GotSourceDir(VidDir, type));                
-                listView.ItemsSource = SourceDirs.ToList();                
-            }
+            await Task.Run(() => GotSourceDir(VidDir, type, OutputDir));                
+            listView.ItemsSource = SourceDirs.ToList();                            
             ListViewUpdater();
             Interlocked.Exchange(ref oneInt, 0);
             return true;
         }
-        private void GotSourceDir(string VidDir, int type)
+        private void GotSourceDir(string VidDir, int type, string OutputDir)
         {
-            SourceDirs.RemoveAll(x => x.Name == VidDir && x.type == type);
-            NewDirInfo temp = new NewDirInfo();
-            temp.Name = VidDir;
-            temp.type = type;
-            SourceDirs.Add(temp);            
-            List<NewFileInfo> files = GetFiles(VidDir, "*.mkv;*.mp4;*.avi;*.m4v;");            
+            SourceDirs.RemoveAll(x => x.Directory == VidDir && x.type == type);
+            AddNewDir(VidDir, type, OutputDir);                      
+            List<NewFileInfo> files = GetFiles(VidDir, type, VidExts);            
             foreach (var file in files)
             {                
-                var m = IsTVShow(file.Name);
+                var m = IsTVShow(file.FileName);
                 if ((m.Success && type != TVShowsType) || (!m.Success && type == TVShowsType))
                 {
                     continue;
-                }
-                file.type = type;
-                SourceFiles.RemoveAll(x => x.originalFullName == file.originalFullName && x.type == file.type);
+                }                
+                SourceFiles.RemoveAll(x => x.FullPath == file.FullPath && x.type == file.type);
                 ConstructName(file, m);
                 SourceFiles.Add(file);
             }
+        }
+        private void AddNewDir(string Name, int type, string OutputDir)
+        {
+            NewDirInfo temp = new NewDirInfo();            
+            temp.Directory = Name.ToLower();
+            temp.type = type;
+            temp.OutputDir = OutputDir.ToLower();
+            SourceDirs.Add(temp);
         }
         private Match IsTVShow(string nfi)
         {
@@ -112,50 +132,14 @@ namespace RemuxMovies
             }
             return m;
         }
-        private void ChangeMovieOutputDir(object sender, RoutedEventArgs e)
-        {
-            ChangeOutputDir(MovieType);
-        }
-        private void ChangeMusicVidOutputDir(object sender, RoutedEventArgs e)
-        {
-            ChangeOutputDir(MusicVideoType);
-        }
-        private void AddTVShowsOutputFolder(object sender, RoutedEventArgs e)
-        {
-            ChangeOutputDir(TVShowsType);
-        }
-        private void ChangeOutputDir(int type)
-        {
-            var dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
-            if (dialog.ShowDialog() == false)
-            {
-                return;
-            }
-            string outputDir = dialog.SelectedPath;
-            ChangeOutputDirRun(outputDir, type);
-            saveToXML();
-            return;
-        }
-        private void ChangeOutputDirRun(string outputDir, int type)
-        {            
-            OutputDirs.RemoveAll(x => x.type == type);
-            NewDirInfo temp = new NewDirInfo();
-            temp.Name = outputDir;
-            temp.type = type;
-
-            OutputDirs.Add(temp);
-            outputDirListView.ItemsSource = OutputDirs.ToList();            
-            ListViewUpdater();
-            return;
-        }
-
+        
         private void RemoveMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (listView.SelectedIndex > -1)
             {
                 var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                SourceFiles.RemoveAll(x => listSelectedItems.Any(c => c.Name == x.fromDirectory && c.type == x.type));
-                SourceDirs.RemoveAll(x => listSelectedItems.Any(c => c.Name == x.Name && c.type == x.type));
+                SourceFiles.RemoveAll(x => listSelectedItems.Any(c => c.Directory == x.fromDirectory && c.type == x.type));
+                SourceDirs.RemoveAll(x => listSelectedItems.Any(c => c.Directory == x.Directory && c.type == x.type));
                 listView.ItemsSource = SourceDirs.ToList();
                 fileListView.ItemsSource = new Dictionary<string, string>();
             }
@@ -168,7 +152,7 @@ namespace RemuxMovies
             if (fileListView.SelectedIndex > -1)
             {
                 var listSelectedItems = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-                SourceFiles.RemoveAll(c => listSelectedItems.Any(x => c.Name == x.Name && c.type == x.type));
+                SourceFiles.RemoveAll(c => listSelectedItems.Any(x => c.FileName == x.FileName && c.type == x.type));
             }
             ListViewUpdater();            
         }
@@ -180,7 +164,7 @@ namespace RemuxMovies
                 var listSelectedItems = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
                 if (listSelectedItems.Count > 0)
                 {
-                    OpenExplorer(listSelectedItems[0].DirectoryName);
+                    OpenExplorer(listSelectedItems[0].Directory);
                 }
             }            
         }
@@ -192,7 +176,7 @@ namespace RemuxMovies
                 var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
                 if (listSelectedItems.Count > 0)
                 {
-                    var dir = listSelectedItems[0].Name;
+                    var dir = listSelectedItems[0].Directory;
                     OpenExplorer(dir);
                 }
             }
@@ -205,7 +189,7 @@ namespace RemuxMovies
                 var listSelectedItems = outputDirListView.SelectedItems.OfType<NewDirInfo>().ToList();
                 if (listSelectedItems.Count > 0)
                 {
-                    OpenExplorer(listSelectedItems[0].Name);
+                    OpenExplorer(listSelectedItems[0].Directory);
                 }
             }
         }
@@ -223,7 +207,7 @@ namespace RemuxMovies
             if (listView.SelectedIndex > -1)
             {
                 var listSelectedItems = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => listSelectedItems.Any(c => c.Name == x.fromDirectory && c.type == x.type)).ToList();
+                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => listSelectedItems.Any(c => c.Directory == x.fromDirectory && c.type == x.type)).ToList();
                 await Start_ClickRun(sourceFiles);
             }
             Interlocked.Exchange(ref oneInt, 0);
@@ -238,7 +222,7 @@ namespace RemuxMovies
             if (fileListView.SelectedIndex > -1)
             {
                 var l = fileListView.SelectedItems.OfType<NewFileInfo>().ToList();
-                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => l.Any(c => c.FullName == x.FullName)).ToList();
+                List<NewFileInfo> sourceFiles = SourceFiles.Where(x => l.Any(c => c.FullPath == x.FullPath)).ToList();
                 await Start_ClickRun(sourceFiles);
             }
             Interlocked.Exchange(ref oneInt, 0);
@@ -265,7 +249,7 @@ namespace RemuxMovies
             if (listView.SelectedIndex > -1)
             {
                 var list1 = listView.SelectedItems.OfType<NewDirInfo>().ToList();
-                fileListView.ItemsSource = SourceFiles.Where(x => list1.Any(c => x.fromDirectory == c.Name && x.type == c.type)).ToList();
+                fileListView.ItemsSource = SourceFiles.Where(x => list1.Any(c => x.fromDirectory == c.Directory && x.type == c.type)).ToList();
             }
             UpdateColumnWidths(UpdateGrid);
             populateInfoLabel();
@@ -326,7 +310,7 @@ namespace RemuxMovies
             SourceFiles.Clear();
             foreach (var d in dirs)
             {
-                await GotSourceDirRun(d.Name, d.type);
+                await GotSourceDirRun(d.Directory, d.type, d.OutputDir);
             }                        
             return true;
         }

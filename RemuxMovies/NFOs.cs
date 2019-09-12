@@ -35,8 +35,15 @@ namespace RemuxMovies
             {
                 return;
             }
+            await MakeNfos();
+            Interlocked.Exchange(ref oneInt, 0);
+        }
+
+        private async Task MakeNfos()
+        {
+            tabControl.SelectedIndex = 0;
             ToggleButtons(false);
-            if (OutputDirs.Where(x => x.type == MovieType).Count() != 0)
+            if (SourceDirs.Where(x => x.type == NfoType).Count() != 0)
             {
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
@@ -45,22 +52,32 @@ namespace RemuxMovies
                 await PrintToAppOutputBG("Time (ms): " + sw.ElapsedMilliseconds, 0, 1);
             }
             ToggleButtons(true);
-            Interlocked.Exchange(ref oneInt, 0);
         }
+
         private async Task ProcessNfo()
         {            
             InitLists();
             nfoList = new List<NewFileInfo>();
-            nfoList.AddRange(await Task.Run(() => GetFiles(OutputDirs.Where(x => x.type == MovieType).First().Name, "*.mkv;")));            
+            foreach (var nfoDir in SourceDirs.Where(x => x.type == NfoType))
+            {
+                nfoList.AddRange(await Task.Run(() => GetFiles(nfoDir.Directory, NfoType, VidExts)));
+            }
             if (nfoList.Count == 0)
             {
                 return;
             }
-            await PrintToAppOutputBG(nfoList.Count + " .nfo files need to be created.", 0, 1);
+            
+            await PrintToAppOutputBG(nfoList.Count + " movies found in nfo directory.", 0, 1);
             int num = 0;
             await PrintToAppOutputBG("Creating .nfo files", 0, 1);
             foreach (var file in nfoList)
-            {
+            {                
+                string nfoFile = file.originalFullPath.Substring(0, file.originalFullPath.Length - 4) + ".nfo";
+                if (File.Exists(nfoFile))
+                {
+                    //await PrintToAppOutputBG(nfoFile + " already exists, skipping.", 0, 1);
+                    continue;
+                }
                 await PrintToAppOutputBG($"Creating .nfo for: {file.originalName}", 0, 1);
                 if (await GetMovInfo(file) == false)
                 {
@@ -74,12 +91,12 @@ namespace RemuxMovies
                     break;
                 }
                 num++;
-                file.destPath = file.DirectoryName;
+                file.destPath = file.Directory;
                 file.destName = file.originalName;
-                bool ret = await getTMDB(file);
+                bool ret = await getTMDB(file, nfoFile);
                 if (!ret)
                 {
-                    await PrintToAppOutputBG($"Error making .nfo for: {file.originalFullName}", 0, 1);
+                    await PrintToAppOutputBG($"Error making .nfo for: {file.originalFullPath}", 0, 1);
                 }
             }
             await displaySummary();
@@ -88,7 +105,7 @@ namespace RemuxMovies
         private async Task createMusicVideoNfo(NewFileInfo nfi)
         {
             string err = "";
-            string nfo = System.IO.Path.Combine(OutputDirs.Where(x => x.type == MusicVideoType).First().Name, nfi.originalFullName.Substring(0, nfi.originalFullName.Length - 4) + ".nfo");
+            string nfo = System.IO.Path.Combine(nfi.destPath, nfi.originalFullPath.Substring(0, nfi.originalFullPath.Length - 4) + ".nfo");
             try
             {
                 var file = File.Open(nfo, FileMode.Create);
@@ -110,14 +127,14 @@ namespace RemuxMovies
                 {
                     err = "Music Video .nfo file could not be created.";
                     await PrintToAppOutputBG(err, 0, 1, "red");
-                    ErroredList.Add(nfo, err);
+                    ErroredListAdd(nfo, err);
                 }
             }
             catch (Exception e)
             {
                 err = "Exception thrown in createNfo(): " + e.InnerException.Message;
                 await PrintToAppOutputBG(err, 0, 1, "Red");
-                ErroredList.Add(nfo, err);
+                ErroredListAdd(nfo, err);
             }
         }
     }

@@ -22,7 +22,7 @@ namespace RemuxMovies
             VidMapTo = "copy ";
             if (!json.ContainsKey("streams"))
             {
-                await PrintToAppOutputBG("Malformed movie data: No streams: " + file.originalFullName, 0, 1, "red");
+                await PrintToAppOutputBG("Malformed movie data: No streams: " + file.originalFullPath, 0, 1, "red");
                 return false;
             }
             var streams = json["streams"];
@@ -33,14 +33,14 @@ namespace RemuxMovies
                 {
                     err = "Malformed movie data: No index in json element: " + x;
                     await PrintToAppOutputBG(err, 0, 1, "yellow");
-                    UnusualList.Add(file.originalFullName, err);
+                    UnusualListAdd(file.originalFullPath, err);
                     continue;
                 }
                 if (!streams[x].ContainsKey("codec_type"))
                 {
                     err = "Malformed movie data: No codec_type in json element: " + x;
                     await PrintToAppOutputBG(err, 0, 1, "yellow");
-                    UnusualList.Add(file.originalFullName, err);
+                    UnusualListAdd(file.originalFullPath, err);
                     continue;
                 }
                 string codectype = JsonValue.Parse(streams[x]["codec_type"].ToString());
@@ -79,7 +79,7 @@ namespace RemuxMovies
                             {
                                 err = "Unusual movie, commentary is before audio track, index #" + index;
                                 await PrintToAppOutputBG(err, 0, 1, "yellow");
-                                UnusualList.Add(file.originalFullName, err);
+                                UnusualListAdd(file.originalFullPath, err);
                                 break;
                             }
                         }
@@ -103,7 +103,7 @@ namespace RemuxMovies
                                 {
                                     err = "Unusual movie, audio language not defined, index #" + index;
                                     await PrintToAppOutputBG(err, 0, 1, "yellow");
-                                    UnusualList.Add(file.originalFullName, err);
+                                    UnusualListAdd(file.originalFullPath, err);
                                 }
                                 else
                                 {
@@ -121,7 +121,7 @@ namespace RemuxMovies
                         {
                             err = "Unusual movie, audio language not defined, index #" + index;
                             await PrintToAppOutputBG(err, 0, 1, "yellow");
-                            UnusualList.Add(file.originalFullName, err);             // no tags or language in tags, probably english.
+                            UnusualListAdd(file.originalFullPath, err);             // no tags or language in tags, probably english.
                         }
                         AudioMap = "-map 0:" + index + " ";
                         foundEngAudio = true;
@@ -146,5 +146,29 @@ namespace RemuxMovies
             await PrintToAppOutputBG("Number of Subtitle streams: " + SubNum, 0, 1);
             return foundEngAudio | foundNonEngAudio;
         }
+        private void UnusualListAdd(string key, string val)
+        {
+            if (UnusualList.ContainsKey(key))
+            {
+                UnusualList.Remove(key);
+            }
+            UnusualList.Add(key, val);
+        }
+        private void SuccessListAdd(string key, string val)
+        {
+            if (SuccessList.ContainsKey(key))
+            {
+                SuccessList.Remove(key);
+            }
+            SuccessList.Add(key, val);
+        }
+        private void ErroredListAdd(string key, string val)
+        {
+            if (ErroredList.ContainsKey(key))
+            {
+                ErroredList.Remove(key);
+            }
+            ErroredList.Add(key, val);
+        }       
     }
 }

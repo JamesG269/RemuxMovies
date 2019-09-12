@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RemuxMovies"
         xmlns:WPF="clr-namespace:ConsoleControl.WPF;assembly=ConsoleControl.WPF" x:Class="RemuxMovies.MainWindow"
         mc:Ignorable="d"
-        Title="RemuxMovies by James Gentile" Height="650" Width="1200" Loaded="Window_Loaded">
+        Title="RemuxMovies by James Gentile" Height="700" Width="1200" Loaded="Window_Loaded">
     <Grid x:Name="mainGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -22,13 +22,14 @@
             <ColumnDefinition Width="auto" MaxWidth="50"/>
             <ColumnDefinition Width="auto" MaxWidth="80"/>
             <ColumnDefinition Width="auto" MaxWidth="110"/>
+            <ColumnDefinition Width="auto" MaxWidth="110"/>
             <ColumnDefinition Width="50" MaxWidth="50"/>
             <ColumnDefinition Width="50"/>
             <ColumnDefinition Width="50"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <TabControl Name="tabControl" Grid.RowSpan="2" Grid.ColumnSpan="13">
+        <TabControl Name="tabControl" Grid.RowSpan="2" Grid.ColumnSpan="14">
             <TabItem Header="Output">
                 <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Width="auto" Height="auto">
                     <Grid.RowDefinitions>
@@ -55,12 +56,11 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Name="stackPanel" Grid.Column="0" Grid.Row="0" IsEnabled="false">
-                        <Button Content="  Add Movies Folder" HorizontalAlignment="Left" Click="AddMoviesDir_Click" Width="auto" Height="20"/>
-                        <Button Content="  Movies Output Folder " HorizontalAlignment="Left" Click="ChangeMovieOutputDir" Width="auto" Height="20"/>
-                        <Button Content="  Add Music Videos Folder " HorizontalAlignment="Left" Click="AddMusicVideosDir_Click" Width="auto" Height="20"/>
-                        <Button Content="  Music Videos Output Folder " HorizontalAlignment="Left" Click="ChangeMusicVidOutputDir" Width="auto" Height="20"/>
-                        <Button Content="  Add TV Shows Folder " HorizontalAlignment="Left" Click="AddTVShowsFolder" Width="auto" Height="20"/>
-                        <Button Content="  TV Shows Output Folder " HorizontalAlignment="Left" Click="AddTVShowsOutputFolder" Width="auto" Height="20"/>
+                        <Button Content="  Add Movies Folders" HorizontalAlignment="Left" Click="AddMoviesDir_Click" Width="auto" Height="20"/>
+                        <Button Content="  Add Music Videos Folders " HorizontalAlignment="Left" Click="AddMusicVideosDir_Click" Width="auto" Height="20"/>
+                        <Button Content="  Add TV Shows Folders " HorizontalAlignment="Left" Click="AddTVShowsFolder" Width="auto" Height="20"/>
+                        <Button Content="  Nfo Output Folder " HorizontalAlignment="Left" Click="AddNfosFolder"  Width="auto" Height="20"/>
+                        <Button Content="  Add Hardlink Folders " HorizontalAlignment="Left" Click="AddHardlinkButton_Click"  Width="auto" Height="20"/>
                     </StackPanel>
                     <ListView Name="listView" Grid.Column="1" Grid.Row="0" SelectionChanged="ListView_SelectionChanged">
                         <ListView.ContextMenu>
@@ -72,8 +72,9 @@
                         </ListView.ContextMenu>
                         <ListView.View>
                             <GridView x:Name="gv3">
-                                <GridViewColumn Header="Directory" DisplayMemberBinding="{Binding Name}" Width="auto"/>
-                                <GridViewColumn Header="Type" DisplayMemberBinding="{Binding FriendlyType}"/>
+                                <GridViewColumn Header="Source Directory" DisplayMemberBinding="{Binding Directory}" Width="auto"/>
+                                <GridViewColumn Header="Target Directory" DisplayMemberBinding="{Binding OutputDir}" Width="auto"/>
+                                <GridViewColumn Header="Type" DisplayMemberBinding="{Binding FriendlyType}" Width="auto"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -105,7 +106,7 @@
                             <GridView x:Name="gv1">
                                 <GridViewColumn                             
                             Header="Files"
-                            DisplayMemberBinding="{Binding originalName}" Width="auto"/>
+                            DisplayMemberBinding="{Binding originalFullPath}" Width="auto"/>
                                 <GridViewColumn                             
                             Header="Skip?"
                             DisplayMemberBinding="{Binding Remembered}" Width="auto"/>
@@ -127,7 +128,7 @@
                     <ListView Name="RememberedListBox" Grid.Row="0" Width="auto" FontFamily="consolas">
                         <ListView.View>
                             <GridView x:Name="RememberedGridView">
-                                <GridViewColumn Width="auto" DisplayMemberBinding="{Binding displayName}" >
+                                <GridViewColumn Width="auto" DisplayMemberBinding="{Binding MovieName}" >
                                     <GridViewColumn.Header>
                                         <GridViewColumnHeader Width="auto" Tag="Name" Click="lvUsersColumnHeader_Click" Content="Name"/>
                                     </GridViewColumn.Header>
@@ -146,14 +147,18 @@
             </TabItem>
             
         </TabControl>
-        <CheckBox Name="forceCheckBox" Content="Force" Grid.Column="9" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="ForceCheckBox_Checked" Unchecked="ForceCheckBox_Checked" />
+        <CheckBox Name="forceCheckBox" Content="Force" Grid.Column="10" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="ForceCheckBox_Checked" Unchecked="ForceCheckBox_Checked" />
         <Button Name="StartButton" IsEnabled="false" Content="  Start  " HorizontalAlignment="Center" Click="Start_Click" Width="auto" Height="20" Grid.Column="1" Grid.Row="2"/>
         <Button Name="SkipButton" IsEnabled="true" Content="  Skip  " HorizontalAlignment="Center" Click="SkipButton_Click"  Width="auto" Height="20" Grid.Column="2" Grid.Row="2"/>
         <Button Content="  Abort  " HorizontalAlignment="Center" Click="Abort_Click" Width="auto" Height="20" Grid.Column="3" Grid.Row="2"/>
         <Button Content="  Clear  " HorizontalAlignment="Center" Click="Clear_Click" Width="auto" Height="20" Grid.Column="4" Grid.Row="2"/>
         <Button Name="ReloadButton" IsEnabled="false" Content="  Reload  " HorizontalAlignment="Center" Click="Reload_Click" Width="auto" Height="20" Grid.Column="5" Grid.Row="2"/>
         <Button Name="MakeNfosButton" IsEnabled="false" Content="  Make .Nfos  " HorizontalAlignment="Center" Click="MakeNfos_Click" Width="auto" Height="20" Grid.Column="6" Grid.Row="2"/>
-        <Label Name="infoLabel" Content="No files." Grid.Column="11" Grid.Row="2"/>
-        <Button Content="View Saved Files" Grid.Column="7" Grid.Row="2" Height="20" Click="DisplayOld"/>
+        <Button Name="MakeHardLinksButton" IsEnabled="true" Content=" Make Hardlinks " HorizontalAlignment="Center" Click="MakeHardLinksButton_Click" Width="auto" Height="20" Grid.Column="7" Grid.Row="2"/>
+        <Label Name="infoLabel" Content="No files." Grid.Column="12" Grid.Row="2"/>
+        <Button Content="View Saved Files" Grid.Column="8" Grid.Row="2" Height="20" Click="DisplayOld"/>
+        <StackPanel Grid.Column="13" Grid.Row="2" Width="auto">
+            <Button Content="Check Nfo dupes" Click="CheckNfoDupesButton_Click"/>
+        </StackPanel>
     </Grid>
 </Window>

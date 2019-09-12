@@ -1,26 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Json;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Threading;
-using System.Xml;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Movies;
@@ -36,15 +21,15 @@ namespace RemuxMovies
         readonly Regex movieSplit = new Regex(@"(\b[a-zA-Z]\.|[a-zA-Z0-9']+)", RegexOptions.Compiled);
         readonly Regex akaSplit = new Regex(@"\d+|:|-|\baka\b|\ba\.k\.a\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private async Task<bool> getTMDB(NewFileInfo nfi)
+        private async Task<bool> getTMDB(NewFileInfo nfi, string nfoFile)
         {
             bool FoundMovie = false;
             if (TMDBAPIKEY == null || TMDBAPIKEY == "" || TMDBAPIKEY.Length < 7)
             {
-                NoTMBDB.Add(nfi.originalFullName, "Reason: No TMDB API Key.");
+                NoTMBDB.Add(nfi.originalFullPath, "Reason: No TMDB API Key.");
                 return false;
             }
-            if (nfi.type != MovieType)
+            if (nfi.type != MovieType && nfi.type != NfoType)
             {
                 return false;
             }
@@ -63,8 +48,8 @@ namespace RemuxMovies
 
             if (fileNameParts.Count > 30)
             {
-                NoTMBDB.Add(nfi.originalFullName, "Reason: Too many file parts.");
-                await createBasicNfo(nfi, fileName);
+                NoTMBDB.Add(nfi.originalFullPath, "Reason: Too many file parts.");
+                await createBasicNfo(nfi, fileName, nfoFile);
                 return false;
             }
             SearchContainer<SearchMovie> results;
@@ -103,8 +88,8 @@ namespace RemuxMovies
                 if ((fileNameParts.Count - skip) < 2 && maxsize < 2)
                 {
                     await PrintToAppOutputBG("Name parts too small.", 0, 1, "red");
-                    NoTMBDB.Add(nfi.originalFullName, "Created Basic .nfo. Reason: Name parts too small.");
-                    await createBasicNfo(nfi, fileName);
+                    NoTMBDB.Add(nfi.originalFullPath, "Created Basic .nfo. Reason: Name parts too small.");
+                    await createBasicNfo(nfi, fileName, nfoFile);
                     return false;
                 }
                 searchStrs = searchStrs.Distinct().ToList();
@@ -121,7 +106,7 @@ namespace RemuxMovies
                         }
                         if (results.Results.Count > 0)
                         {
-                            FoundMovie = await IDMovie(results, searchStr, foundYear, nfi, client, fileYear);
+                            FoundMovie = await IDMovie(results, searchStr, foundYear, nfi, client, fileYear, nfoFile);
                         }
                     }
                     if (FoundMovie)
@@ -133,8 +118,8 @@ namespace RemuxMovies
             } while ((fileNameParts.Count - skip) > 0 && !FoundMovie);
             if (!FoundMovie)
             {
-                await createBasicNfo(nfi, fileName);
-                NoTMBDB.Add(nfi.originalFullName, "Created basic .nfo. Reason: No results at TMDB.org");
+                await createBasicNfo(nfi, fileName, nfoFile);
+                NoTMBDB.Add(nfi.originalFullPath, "Created basic .nfo. Reason: No results at TMDB.org");
             }
             return FoundMovie;
         }
@@ -179,7 +164,7 @@ namespace RemuxMovies
             Match m = null;
             foreach (var r in regexChecks)
             {
-                regExIdx = file.Length - 6;                
+                regExIdx = file.Length;                
                 while (regExIdx > 1)
                 {
                     m = r.Match(file, regExIdx);
@@ -190,7 +175,7 @@ namespace RemuxMovies
                         if (result == true && fileYear > 1900 && fileYear <= (curYear + 1))
                         {
                             foundYear = true;
-                            foundYearIdx = m.Index + 1;
+                            foundYearIdx = m.Index;
                             break;
                         }                        
                     }
@@ -202,10 +187,10 @@ namespace RemuxMovies
             }
             return foundYear;
         }
-        private async Task createBasicNfo(NewFileInfo nfi, string file)
+        private async Task createBasicNfo(NewFileInfo nfi, string file, string nfoFile)
         {
             string movieURL = $"<movie><title>{nfi.originalName}</title></movie>";
-            await createMovNfo(nfi, movieURL, "No TMDB","No TMDB", 0);
+            await createMovNfo(nfi, movieURL, "No TMDB","No TMDB", 0, nfoFile);
             await PrintToAppOutputBG("Created Basic .nfo.", 0, 1, "yellow");
         }
 
@@ -217,7 +202,7 @@ namespace RemuxMovies
             public int LangDiff;
         }
 
-        private async Task<bool> IDMovie(SearchContainer<SearchMovie> results, string searchStr, bool foundYear, NewFileInfo nfi, TMDbClient client, int yearFromFileName)
+        private async Task<bool> IDMovie(SearchContainer<SearchMovie> results, string searchStr, bool foundYear, NewFileInfo nfi, TMDbClient client, int yearFromFileName, string nfoFile)
         {
             List<int> prevIDs = new List<int>();
             List<MovWeight> closestMovs = new List<MovWeight>();
@@ -260,11 +245,7 @@ namespace RemuxMovies
                 int ne = ProcessTitle(searchStr, results.Results[i].OriginalTitle, results.Results[i].Title);
                 if (ne == -1)
                 {
-                    if (results.Results.Count != 1 || temp > 2)
-                    {
-                        continue;
-                    }
-                    ne = 5;
+                    continue;                    
                 }
                 mov.NameDiff = ne;
                 closestMovs.Add(mov);
@@ -278,23 +259,29 @@ namespace RemuxMovies
             c = closestMovs.Min(x => x.NameDiff);
             closestMovs.RemoveAll(x => x.NameDiff > c);
             c = closestMovs.Min(x => x.LangDiff);
-            closestMovs.RemoveAll(x => x.LangDiff > c);
+            closestMovs.RemoveAll(x => x.LangDiff > c);            
             int movieID = closestMovs[0].MovieID;
             await waitForTMDB();
             Movie movie = await client.GetMovieAsync(movieID, MovieMethods.Credits);
 
-            string movieURL = @"https://www.themoviedb.org/movie/" + movieID;
+            string yearStr = "Unknown year";
+            if (movie.ReleaseDate != null)
+            {
+                yearStr = movie.ReleaseDate.Value.Year.ToString();
+            }
+
+            string movieURL = "<movie><tagline>" + yearStr + " " + movie.Tagline + "</tagline></movie>" + @"https://www.themoviedb.org/movie/" + movieID;
 
             int movieYear = movie.ReleaseDate == null ? 0 : movie.ReleaseDate.Value.Year;
 
-            bool ret = await createMovNfo(nfi, movieURL, movie.Title, movie.OriginalTitle, movieYear);
+            bool ret = await createMovNfo(nfi, movieURL, movie.Title, movie.OriginalTitle, movieYear, nfoFile);
 
             foreach (Cast cast in movie.Credits.Cast)
             {
                 List<string> castParts = cast.Character.ToString().ToLower().Split(" ".ToCharArray()).ToList();
                 if (castParts.Where(p => nonChar.Any(x => p == x)).Count() > 0)
                 {
-                    BadChar.Add(nfi.originalFullName);
+                    BadChar.Add(nfi.originalFullPath);
                 }
             }
             return ret;
@@ -444,7 +431,7 @@ namespace RemuxMovies
                 {
                     n = wordnumbers[n];
                 }
-                if (p != n)
+                if (string.Compare(p, n, StringComparison.InvariantCultureIgnoreCase) != 0)
                 {
                     ne++;
                     bool pb = Int32.TryParse(p, out outp);
@@ -496,18 +483,18 @@ namespace RemuxMovies
             }
             return -1;
         }
-        private async Task<bool> createMovNfo(NewFileInfo nfi, string nfoStr, string Title, string OriginalTitle, int year)
+        private async Task<bool> createMovNfo(NewFileInfo nfi, string nfoStr, string Title, string OriginalTitle, int year, string nfoFile)
         {
             string err = "";
-            string nfo = System.IO.Path.Combine(nfi.destPath, nfi.destName.Substring(0, nfi.destName.Length - 4) + ".nfo");
+            
             try
             {
-                if (File.Exists(nfo))
+                if (File.Exists(nfoFile))
                 {
-                    File.SetAttributes(nfo, FileAttributes.Normal);
-                    File.Delete(nfo);
+                    File.SetAttributes(nfoFile, FileAttributes.Normal);
+                    File.Delete(nfoFile);
                 }
-                var file = File.Create(nfo);
+                var file = File.Create(nfoFile);
                 byte[] nfoBytes = Encoding.UTF8.GetBytes(nfoStr);
                 file.Write(nfoBytes, 0, nfoBytes.Length);
                 file.Close();
@@ -516,9 +503,9 @@ namespace RemuxMovies
                 {
                     file = null;
                 }
-                if (File.Exists(nfo))
+                if (File.Exists(nfoFile))
                 {
-                    await PrintToAppOutputBG("Movie .nfo file created: " + nfo, 0, 1);
+                    await PrintToAppOutputBG("Movie .nfo file created: " + nfoFile, 0, 1);
                     await PrintToAppOutputBG("Title: ", 0, 0);
                     await PrintToAppOutputBG(Title, 0, 1, "lightgreen");
                     await PrintToAppOutputBG("Original Title: ", 0, 0);
@@ -526,14 +513,14 @@ namespace RemuxMovies
                     await PrintToAppOutputBG("year: ", 0, 0);
                     await PrintToAppOutputBG($"{year}", 0, 1 , "lightgreen");
 
-                    File.SetAttributes(nfo, FileAttributes.Hidden);
+                    File.SetAttributes(nfoFile, FileAttributes.Hidden);
                     return true;
                 }
                 else
                 {
                     err = "Movie .nfo file could not be created.";
                     await PrintToAppOutputBG(err, 0, 1, "red");
-                    ErroredList.Add(nfo, err);
+                    ErroredListAdd(nfoFile, err);
                     return false;
                 }
             }
@@ -541,7 +528,7 @@ namespace RemuxMovies
             {
                 err = "Exception thrown in createMovNfo(): " + e.InnerException.Message;
                 await PrintToAppOutputBG(err, 0, 1, "Red");
-                ErroredList.Add(nfo, err);
+                ErroredListAdd(nfoFile, err);
                 return false;
             }
         }

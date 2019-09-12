@@ -11,15 +11,15 @@ namespace RemuxMovies
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {        
+    {
+        
         List<NewFileInfo> nfoList;
 
         bool GetFiles_Cancel = false;
-        
-        public List<NewFileInfo> GetFiles(string path, string searchPattern)
-        {            
-            List<NewFileInfo> retFiles = new List<NewFileInfo>();
-            string[] patterns = searchPattern.Split(';');
+
+        public List<NewFileInfo> GetFiles(string path, int type, string[] patterns)
+        {
+            List<NewFileInfo> retFiles = new List<NewFileInfo>();            
             Stack<string> dirs = new Stack<string>();
             if (!Directory.Exists(path))
             {
@@ -48,7 +48,7 @@ namespace RemuxMovies
                             return retFiles;
                         }
                         DirectoryInfo dirInfo = new DirectoryInfo(currentDir);
-                        FileInfo[] fs = dirInfo.GetFiles(filter);
+                        FileInfo[] fs = dirInfo.GetFiles("*" + filter);
 
                         foreach (var f in fs)
                         {
@@ -57,23 +57,33 @@ namespace RemuxMovies
                                 continue;
                             }
                             var NewFInfo = new NewFileInfo();
-                            NewFInfo.originalFullName = f.FullName;
-                            NewFInfo.originalDirectoryName = f.DirectoryName;
+                            NewFInfo.originalFullPath = f.FullName;
+                            NewFInfo.originalDirectory = f.DirectoryName;
                             NewFInfo.originalName = f.Name;
-                            NewFInfo.DirectoryName = f.DirectoryName.ToLower();
-                            NewFInfo.FullName = f.FullName.ToLower();
-                            NewFInfo.Name = f.Name.ToLower();                            
+                            NewFInfo.Directory = f.DirectoryName.ToLower();
+                            NewFInfo.FullPath = f.FullName.ToLower();
+                            NewFInfo.FileName = f.Name.ToLower();                            
                             NewFInfo.length = f.Length;
-                            NewFInfo.fromDirectory = path;
-                            if (forceAll == false && OldMovies.Where(x => x.FullName.Equals(NewFInfo.FullName)).Count() > 0)
+                            NewFInfo.fromDirectory = path.ToLower();
+                            NewFInfo.type = type;
+                            retFiles.Add(NewFInfo);
+                            if (type == MovieType && forceAll == false && OldMovies.Where(x => x.FullPath.Equals(NewFInfo.FullPath)).Count() > 0)
                             {
                                 NewFInfo._Remembered = true;
                             }
-                            else
+                            else if (type == MovieType)
                             {
                                 NewFInfo._Remembered = false;
                             }
-                            retFiles.Add(NewFInfo);
+                            if (type == HardlinkType && forceAll == false && OldHardLinks.Where(x => x.SourceFullPath.Equals(NewFInfo.FullPath)).Count() > 0)
+                            {
+                                NewFInfo._Remembered = true;
+                            }
+                            else if (type == HardlinkType)
+                            {
+                                NewFInfo._Remembered = false;
+                            }
+                            
                         }                        
                     }
                 }
@@ -83,6 +93,106 @@ namespace RemuxMovies
                 }
             } while (dirs.Count > 0);
             return retFiles;
-        }    
+        }
+        public class NewFileInfo
+        {
+            public string _originalFullPath;
+
+            public string originalFullPath
+            {
+                get
+                {
+                    return _originalFullPath;
+                }
+                set
+                {
+                    _originalFullPath = value;
+                }
+            }
+            public string originalName;            
+            public string originalDirectory;
+            public long length;
+            public string FullPath;
+            public string FileName;
+            public string Directory;
+            public string fromDirectory;
+            public int type; // movies = 0; musicvideos = 1; TV Shows = 2            
+            private string _destName;
+            public string destName
+            {
+                get
+                {
+                    return _destName;
+                }
+                set
+                {
+                    _destName = value;
+                }
+            }
+
+            public bool _Remembered;
+            public string Remembered
+            {
+                get
+                {
+                    return _Remembered.ToString();
+                }
+            }
+            public string destPath;
+            public string FriendlyType
+            {
+                get
+                {
+                    return typeFriendlyName[type];
+                }
+            }
+        }
+        public class NewDirInfo
+        {            
+            public Boolean Process = true;            
+            public string _Directory;
+            public string _OutputDir;
+            public string Directory
+            {
+                get
+                {
+                    return _Directory;
+                }
+                set
+                {
+                    _Directory = value;
+                }
+            }
+            public string OutputDir
+            {
+                get
+                {
+                    return _OutputDir;
+                }
+                set
+                {
+                    _OutputDir = value;
+                }
+            }
+            public int _type;
+            public int type
+            {
+                get
+                {
+                    return _type;
+                }
+                set
+                {
+                    _type = value;
+                }
+            }
+            public string FriendlyType
+            {
+                get
+                {
+                    return typeFriendlyName[_type];
+                }
+            }
+        }
     }
 }
