@@ -83,6 +83,7 @@ namespace RemuxMovies
         };
 
         Dictionary<string, string> ErroredList;
+        List<string> vc1List;
         List<string> NoAudioList;
         List<string> SkippedList;
         Dictionary<string, string> UnusualList;
@@ -103,7 +104,7 @@ namespace RemuxMovies
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            SourceXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\SourceDirs.xml");            
+            SourceXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\SourceDirs.xml");
             OldMoviesXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\OldMovies.xml");
             HardLinksXML = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"RemuxMovies\HardLinks.xml");
             curYear = DateTime.Today.Year;
@@ -131,7 +132,7 @@ namespace RemuxMovies
             {
                 MessageBox.Show("FFMpeg/FFProbe not found at: " + ffmpegDir);
                 //Close();
-            }            
+            }
             await PrintToAppOutputBG("Ready. ", 0, 2, "green");
             if (await CheckAutoJob() == true)
             {
@@ -194,20 +195,20 @@ namespace RemuxMovies
             {
                 return false;
             }
-            bool doAutoJob = false;            
+            bool doAutoJob = false;
             for (int i = 1; i < args.Count(); i++)
             {
                 if (string.Compare(args[i], "/auto", true) == 0 || string.Compare(args[i], "-auto", true) == 0)
                 {
                     doAutoJob = true;
                 }
-            }            
+            }
             if (doAutoJob)
-            {                
-                await Task.Run(() => MakeHardlinks());                
+            {
+                await Task.Run(() => MakeHardlinks());
                 await MakeNfos();
                 ToggleButtons(false);
-                await Task.Run(() => CheckNfoDupes());                             
+                await Task.Run(() => CheckNfoDupes());
             }
             return true;
         }
@@ -242,7 +243,7 @@ namespace RemuxMovies
 
             serializer = new XmlSerializer(typeof(List<OldMovie>));
             using (StreamWriter streamWriter = new StreamWriter(OldMoviesXML))
-            {                
+            {
                 serializer.Serialize(streamWriter, OldMovies);
             }
             serializer = new XmlSerializer(typeof(List<OldHardLink>));
@@ -258,9 +259,16 @@ namespace RemuxMovies
             {
                 using (StreamReader streamReader = new StreamReader(OldMoviesXML))
                 {
-                    OldMovies = (List<OldMovie>)serializer.Deserialize(streamReader);                    
+                    OldMovies = (List<OldMovie>)serializer.Deserialize(streamReader);
+                    foreach (var o in OldMovies)
+                    {
+                        if (string.IsNullOrWhiteSpace(o.MovieName))
+                        {
+                            o.MovieName = AddMovieName(o.FileName);
+                        }
+                    }
+                    await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 2);
                 }
-                await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 2);
             }
             serializer = new XmlSerializer(typeof(List<OldHardLink>));
             if (File.Exists(HardLinksXML))
@@ -513,32 +521,40 @@ namespace RemuxMovies
         private async void MakeHardLinksButton_Click(object sender, RoutedEventArgs e)
         {
             tabControl.SelectedIndex = 0;
-            ToggleButtons(true);
-            await Task.Run(() => MakeHardlinks());
             ToggleButtons(false);
+            await Task.Run(() => MakeHardlinks());
+            ToggleButtons(true);
         }
         private async Task<bool> MakeHardlinks()
-        {           
+        {
             int num = 0;
 
             foreach (var OldHL in OldHardLinks.ToList())
             {
-                if (!File.Exists(OldHL.TargetFullPath))
+                string drv = System.IO.Path.GetPathRoot(OldHL.SourceFullPath);
+                if (!Directory.Exists(drv))
                 {
-                    OldHardLinks.Remove(OldHL);
                     continue;
                 }
                 if (SourceDirs.Where(x => x.type == HardlinkType && x.Directory.Equals(OldHL.SourceDir)).Count() == 0)
                 {
                     continue;
                 }
-                if (File.Exists(OldHL.SourceFullPath))
+                if (!File.Exists(OldHL.TargetFullPath))
                 {
-                    continue;
+                    OldHardLinks.Remove(OldHL);
+                    var s = SourceFiles.Where(c => c.type == HardlinkType && c.FullPath == OldHL.SourceFullPath);
+                    s.All(c => c._Remembered = false);
                 }
-                File.Delete(OldHL.TargetFullPath);
-                await PrintToAppOutputBG("Deleted hardlink: " + OldHL.TargetFullPath, 0, 1);
-                OldHardLinks.Remove(OldHL);
+                if (!File.Exists(OldHL.SourceFullPath))
+                {
+                    if (File.Exists(OldHL.TargetFullPath))
+                    {
+                        File.Delete(OldHL.TargetFullPath);
+                        await PrintToAppOutputBG("Deleted hardlink: " + OldHL.TargetFullPath, 0, 1);
+                    }
+                    OldHardLinks.Remove(OldHL);
+                }
             }
 
             var hlSourceFiles = SourceFiles.Where(x => x.type == HardlinkType && x._Remembered == false).ToList();
@@ -548,7 +564,7 @@ namespace RemuxMovies
                 if (dirs.Count() != 1)
                 {
                     continue;
-                }                
+                }
                 var dir = dirs.First();
                 string hlTargetFile = System.IO.Path.Combine(dir.OutputDir, hlSourceFile.FileName);
                 if (File.Exists(hlTargetFile))
@@ -565,6 +581,7 @@ namespace RemuxMovies
                     await PrintToAppOutputBG(hlTargetFile + " hardlinked to source: " + hlSourceFile.originalFullPath, 0, 1, "lightgreen");
                     hlSourceFile._Remembered = true;
                     AddHardLink(hlSourceFile, hlTargetFile);
+                    AddToOldMovies(hlSourceFile);
                 }
                 else
                 {
@@ -588,9 +605,9 @@ namespace RemuxMovies
             oldHL.MovieName = AddMovieName(hlSourceFile.FileName);
             if (OldHardLinks.Where(x => x.SourceFullPath == hlSourceFile.FullPath).Count() == 0)
             {
-                OldHardLinks.Add(oldHL);                
+                OldHardLinks.Add(oldHL);
             }
-            
+
         }
 
         private async void CheckNfoDupesButton_Click(object sender, RoutedEventArgs e)
@@ -601,7 +618,7 @@ namespace RemuxMovies
         private async Task<bool> CheckNfoDupes()
         {
             Dispatcher.Invoke(() => ClearWindows());
-            Dictionary<byte[], List<string>> HashName = new Dictionary<byte[], List<string>>();
+            Dictionary<string, List<string>> HashName = new Dictionary<string, List<string>>();
             List<NewFileInfo> nfoFiles = new List<NewFileInfo>();
 
             foreach (var dir in SourceDirs.Where(x => x.type == NfoType))
@@ -613,11 +630,11 @@ namespace RemuxMovies
                 await PrintToAppOutputBG("No .nfo files found.", 0, 1);
                 return false;
             }
-            
+
             using (SHA512 sha512 = new SHA512Managed())
             {
                 foreach (var nfoFile in nfoFiles)
-                {                    
+                {
                     bool foundVid = false;
                     foreach (var ext in VidExts)
                     {
@@ -630,26 +647,26 @@ namespace RemuxMovies
                     if (foundVid == false)
                     {
                         File.Delete(nfoFile.originalFullPath);
-                        await PrintToAppOutputBG("Lone .nfo file deleted: " + nfoFile.originalFullPath, 0, 1, "yellow");                        
+                        await PrintToAppOutputBG("Lone .nfo file deleted: " + nfoFile.originalFullPath, 0, 1, "yellow");
                         continue;
                     }
                     using (FileStream fs = new FileStream(nfoFile.originalFullPath, FileMode.Open))
                     using (BufferedStream bs = new BufferedStream(fs))
                     {
                         byte[] hash = sha512.ComputeHash(bs);
-                        /*
+
                         StringBuilder formatted = new StringBuilder(2 * hash.Length);
                         foreach (byte b in hash)
                         {
                             formatted.AppendFormat("{0:X2}", b);
                         }
-                        string hashstr = formatted.ToString();*/
+                        string hashStr = formatted.ToString();
 
-                        if (!HashName.ContainsKey(hash))
+                        if (!HashName.ContainsKey(hashStr))
                         {
-                            HashName.Add(hash, new List<string>());
+                            HashName.Add(hashStr, new List<string>());
                         }
-                        HashName[hash].Add(nfoFile.originalFullPath);
+                        HashName[hashStr].Add(nfoFile.originalFullPath);
                     }
                 }
             }

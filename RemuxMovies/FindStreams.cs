@@ -49,7 +49,11 @@ namespace RemuxMovies
                 {
                     case "video":
                         VidNum++;
-                        if (streams[x].ContainsKey("codec_name") && streams[x]["codec_name"] == "vc1")
+                        if (streams[x].ContainsKey("codec_name"))
+                        {
+                            await PrintToAppOutputBG("Video codec: " + streams[x]["codec_name"], 0, 1);
+                        }
+                        if (streams[x].ContainsKey("codec_name") && (streams[x]["codec_name"] == "vc1" || streams[x]["codec_name"] == "mpeg4"))
                         {
                             if (streams[x].ContainsKey("tags") && streams[x]["tags"].ContainsKey("bps-eng"))
                             {
@@ -65,6 +69,7 @@ namespace RemuxMovies
                                 VidMapTo = "libx264 -crf 18 ";                                
                             }
                             await PrintToAppOutputBG("Video is VC-1, converting to x264 using flags: " + VidMapTo, 0, 1, "yellow");
+                            vc1List.Add(file.originalFullPath);
                         }                        
                         break;
                     case "audio":

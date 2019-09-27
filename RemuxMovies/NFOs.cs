@@ -35,14 +35,15 @@ namespace RemuxMovies
             {
                 return;
             }
+            tabControl.SelectedIndex = 0;
+            ToggleButtons(false);
             await MakeNfos();
             Interlocked.Exchange(ref oneInt, 0);
+            ToggleButtons(true);
         }
 
         private async Task MakeNfos()
-        {
-            tabControl.SelectedIndex = 0;
-            ToggleButtons(false);
+        {           
             if (SourceDirs.Where(x => x.type == NfoType).Count() != 0)
             {
                 Stopwatch sw = new Stopwatch();
@@ -50,8 +51,7 @@ namespace RemuxMovies
                 await Task.Run(() => ProcessNfo());
                 sw.Stop();
                 await PrintToAppOutputBG("Time (ms): " + sw.ElapsedMilliseconds, 0, 1);
-            }
-            ToggleButtons(true);
+            }            
         }
 
         private async Task ProcessNfo()

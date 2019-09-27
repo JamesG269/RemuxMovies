@@ -73,25 +73,18 @@ namespace RemuxMovies
                     file.originalFullPath + Environment.NewLine +
                     $"Size: {file.length.ToString("N0")} bytes.", 0, 2);
                 bool ret = await processFile(file);                
-                file._Remembered = true;
+                file._Remembered = true;                
+                if (ret)
+                {
+                    AddToOldMovies(file);                    
+                    saveToXML();
+                }
                 Dispatcher.Invoke(() =>
                 {
                     ListViewUpdater();
+                    UpdateRememberedList();
                 });
-                if (ret)
-                {                            
-                    if (OldMovies.Where(x => x.FileName.Equals(file.FullPath)).Count() == 0)
-                    {
-                        OldMovie oldMov = new OldMovie();
-                        oldMov.FileName = System.IO.Path.GetFileName(file.FullPath);
-                        oldMov.Num = OldMovies.Count;
-                        oldMov.FullPath = file.FullPath;
-                        OldMovies.Add(oldMov);                        
-                        Dispatcher.Invoke(() => UpdateRememberedList());
-                        saveToXML();
-                    }
-                }   
-                else
+                if (!ret)
                 {
                     if (AbortProcessing == true)
                     {
@@ -109,6 +102,19 @@ namespace RemuxMovies
             await displaySummary();
         }
 
+        private void AddToOldMovies(NewFileInfo file)
+        {
+            if (OldMovies.Where(x => x.FileName.Equals(file.FullPath)).Count() == 0)
+            {
+                OldMovie oldMov = new OldMovie();
+                oldMov.FileName = System.IO.Path.GetFileName(file.FullPath);
+                oldMov.Num = OldMovies.Count;
+                oldMov.FullPath = file.FullPath;
+                oldMov.MovieName = AddMovieName(oldMov.FileName);
+                OldMovies.Add(oldMov);                               
+            }
+        }
+
         private async Task displaySummary()
         {
             await displayList(SkippedList, " movies skipped:", "white");
@@ -117,6 +123,7 @@ namespace RemuxMovies
             await displayList(UnusualList, " movies with unusal aspects:", "yellow");
             await displayList(NoTMBDB, " movies not found at TMDB.org", "yellow");
             await displayList(SuccessList, " movies processed successfully:", "lightgreen");
+            await displayList(vc1List, " movies use the VC-1 codec.", "red");
             await displayList(BadChar, " movies with bad char:", "red");
             await PrintToAppOutputBG("Complete!", 1, 1, "lightgreen");
             PrintToConsoleOutputBG("Complete!");
@@ -125,6 +132,7 @@ namespace RemuxMovies
 
         private void InitLists()
         {
+            vc1List = new List<string>();
             ErroredList = new Dictionary<string, string>();
             SuccessList = new Dictionary<string, string>();
             NoAudioList = new List<string>();

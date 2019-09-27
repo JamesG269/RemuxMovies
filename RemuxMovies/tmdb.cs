@@ -247,17 +247,18 @@ namespace RemuxMovies
                 {
                     continue;                    
                 }
-                mov.NameDiff = ne;
+                mov.NameDiff = ne;                
                 closestMovs.Add(mov);
             }
             if (closestMovs.Count == 0)
             {
                 return false;
             }
+
             int c = closestMovs.Min(x => x.YearDiff);
-            closestMovs.RemoveAll(x => x.YearDiff > c);
+            closestMovs.RemoveAll(x => x.YearDiff > c && x.YearDiff > 2);
             c = closestMovs.Min(x => x.NameDiff);
-            closestMovs.RemoveAll(x => x.NameDiff > c);
+            closestMovs.RemoveAll(x => x.NameDiff > c);            
             c = closestMovs.Min(x => x.LangDiff);
             closestMovs.RemoveAll(x => x.LangDiff > c);            
             int movieID = closestMovs[0].MovieID;
