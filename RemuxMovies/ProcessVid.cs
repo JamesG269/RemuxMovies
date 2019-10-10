@@ -111,6 +111,7 @@ namespace RemuxMovies
                 oldMov.Num = OldMovies.Count;
                 oldMov.FullPath = file.FullPath;
                 oldMov.MovieName = AddMovieName(oldMov.FileName);
+                oldMov.Size = file.length / 1000000000;
                 OldMovies.Add(oldMov);                               
             }
         }

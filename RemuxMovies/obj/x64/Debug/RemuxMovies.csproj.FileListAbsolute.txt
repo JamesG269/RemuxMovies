@@ -76,7 +76,6 @@ C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\MainWindow.
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.g.resources
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.Properties.Resources.resources
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.csproj.GenerateResource.cache
-C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.csproj.CoreCompileInputs.cache
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.csproj.CopyComplete
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.exe
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Debug\RemuxMovies.pdb

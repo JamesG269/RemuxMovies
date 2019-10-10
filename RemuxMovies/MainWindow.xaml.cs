@@ -149,7 +149,7 @@ namespace RemuxMovies
                 if (!string.IsNullOrWhiteSpace(mov.MovieName))
                 {
                     continue;
-                }
+                }                      
                 save = true;
                 mov.MovieName = AddMovieName(mov.FileName);
             }
@@ -219,7 +219,8 @@ namespace RemuxMovies
             public string FullPath { get; set; }
             public string displayName { get; set; }
             public string MovieName { get; set; }
-        }
+            public long Size { get; set; }
+        }        
 
         public class OldHardLink
         {
@@ -254,6 +255,7 @@ namespace RemuxMovies
         }
         public async Task<bool> loadFromXML()
         {
+            bool save = false;
             XmlSerializer serializer = new XmlSerializer(typeof(List<OldMovie>));
             if (File.Exists(OldMoviesXML))
             {
@@ -262,12 +264,35 @@ namespace RemuxMovies
                     OldMovies = (List<OldMovie>)serializer.Deserialize(streamReader);
                     foreach (var o in OldMovies)
                     {
-                        if (string.IsNullOrWhiteSpace(o.MovieName))
+                        //if (string.IsNullOrWhiteSpace(o.MovieName))
                         {
                             o.MovieName = AddMovieName(o.FileName);
                         }
+                    }                    
+                    int t = OldMovies.Where(c => c.Size > 0).Count();
+                    int i = 0;
+                    foreach (var o in OldMovies.ToList())
+                    {
+                        if (o.Size == 0)
+                        {
+                            continue;
+                        }
+                        var m = IsTVShow(o.FullPath);
+                        if (m.Success == true)
+                        {
+                            continue;
+                        }
+                        var x = OldMovies.Where(c => string.Compare(c.MovieName, o.MovieName, true) == 0).ToList();
+                        if (x.Count() > 1)
+                        {
+                            save = true;
+                            OldMovies.RemoveAll(c => string.Compare(c.MovieName, o.MovieName, true) == 0 && c.Size == 0);
+                            i += x.Where(c => c.Size == 0).Count();
+                        }
                     }
-                    await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 2);
+                    await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 1);
+                    await PrintToAppOutputBG(i.ToString() + " 0 sized movies removed. ", 0, 2);
+                    
                 }
             }
             serializer = new XmlSerializer(typeof(List<OldHardLink>));
@@ -291,6 +316,10 @@ namespace RemuxMovies
 
             await displayFilesToProcess();
             await LoadNonChar();
+            if (save == true)
+            {
+                saveToXML();
+            }
             return true;
         }
 

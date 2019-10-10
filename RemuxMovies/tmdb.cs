@@ -99,15 +99,19 @@ namespace RemuxMovies
                     {
                         await waitForTMDB();
                         results = client.SearchMovieAsync(searchStr, 0, true, fileYear).Result;
-                        if (results.Results.Count == 0 && fileYear != 0)
-                        {
-                            await waitForTMDB();
-                            results = client.SearchMovieAsync(searchStr, 0, true, 0).Result;
-                        }
                         if (results.Results.Count > 0)
                         {
                             FoundMovie = await IDMovie(results, searchStr, foundYear, nfi, client, fileYear, nfoFile);
                         }
+                        if (FoundMovie == false && fileYear != 0)
+                        {
+                            await waitForTMDB();
+                            results = client.SearchMovieAsync(searchStr, 0, true, 0).Result;
+                            if (results.Results.Count > 0)
+                            {
+                                FoundMovie = await IDMovie(results, searchStr, foundYear, nfi, client, fileYear, nfoFile);
+                            }
+                        }                        
                     }
                     if (FoundMovie)
                     {

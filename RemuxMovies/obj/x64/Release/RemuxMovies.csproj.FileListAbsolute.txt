@@ -14,7 +14,6 @@ C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\MainWindo
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.g.resources
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.Properties.Resources.resources
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csproj.GenerateResource.cache
-C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csproj.CoreCompileInputs.cache
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csproj.CopyComplete
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.exe
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.pdb
@@ -80,3 +79,4 @@ C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dia
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.xml
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.ValueTuple.xml
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Xabe.FFmpeg.xml
+C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csprojAssemblyReference.cache

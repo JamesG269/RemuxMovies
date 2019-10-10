@@ -133,11 +133,15 @@
                                         <GridViewColumnHeader Width="auto" Tag="Name" Click="lvUsersColumnHeader_Click" Content="Name"/>
                                     </GridViewColumn.Header>
                                 </GridViewColumn>
+                                <GridViewColumn Width="auto" DisplayMemberBinding="{Binding Size}" >
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader MinWidth="80" Width="auto" Tag="Size" Click="lvUsersColumnHeader_Click" Content="Size (GBs)"/>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
                                 <GridViewColumn Width="auto" DisplayMemberBinding="{Binding Num}" >
                                     <GridViewColumn.Header>
                                         <GridViewColumnHeader MinWidth="80" Width="auto" Tag="Num" Click="lvUsersColumnHeader_Click" Content="Num"/>
                                     </GridViewColumn.Header>
-                                    
                                 </GridViewColumn>
                             </GridView>
                         </ListView.View>
