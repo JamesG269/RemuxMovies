@@ -41,10 +41,10 @@ namespace RemuxMovies
             {
                 return;
             }
-            var typeList = processFiles.Select(x => x.type).Distinct();            
-            InitLists();            
-            
-            
+            var typeList = processFiles.Select(x => x.type).Distinct();
+            InitLists();
+
+
             await PrintToAppOutputBG(" ", 0, 1);
             int num = 0;
             int total = processFiles.Count();
@@ -62,7 +62,7 @@ namespace RemuxMovies
                     AbortProcessing = false;
                     GetFiles_Cancel = false;
                     break;
-                }                    
+                }
                 if (file.type == MusicVideoType)
                 {
                     file.destPath = dirs.First().Directory;
@@ -72,11 +72,11 @@ namespace RemuxMovies
                 await PrintToAppOutputBG($"Processing video {num} of {total}:" + Environment.NewLine +
                     file.originalFullPath + Environment.NewLine +
                     $"Size: {file.length.ToString("N0")} bytes.", 0, 2);
-                bool ret = await processFile(file);                
-                file._Remembered = true;                
+                bool ret = await processFile(file);
+                file._Remembered = true;
                 if (ret)
                 {
-                    AddToOldMovies(file);                    
+                    AddToOldMovies(file);
                     saveToXML();
                 }
                 Dispatcher.Invoke(() =>
@@ -104,16 +104,14 @@ namespace RemuxMovies
 
         private void AddToOldMovies(NewFileInfo file)
         {
-            if (OldMovies.Where(x => x.FileName.Equals(file.FullPath)).Count() == 0)
-            {
-                OldMovie oldMov = new OldMovie();
-                oldMov.FileName = System.IO.Path.GetFileName(file.FullPath);
-                oldMov.Num = OldMovies.Count;
-                oldMov.FullPath = file.FullPath;
-                oldMov.MovieName = AddMovieName(oldMov.FileName);
-                oldMov.Size = file.length / 1000000000;
-                OldMovies.Add(oldMov);                               
-            }
+            OldMovies.RemoveAll(x => string.Compare(x.FileName, file.FullPath, true) == 0);            
+            OldMovie oldMov = new OldMovie();
+            oldMov.FileName = System.IO.Path.GetFileName(file.FullPath);
+            oldMov.Num = OldMovies.Count;
+            oldMov.FullPath = file.FullPath;
+            oldMov.MovieName = AddMovieName(oldMov.FileName);
+            oldMov.Size = file.length / 1000000000;
+            OldMovies.Add(oldMov);
         }
 
         private async Task displaySummary()
@@ -125,7 +123,7 @@ namespace RemuxMovies
             await displayList(NoTMBDB, " movies not found at TMDB.org", "yellow");
             await displayList(SuccessList, " movies processed successfully:", "lightgreen");
             await displayList(vc1List, " movies use the VC-1 codec.", "red");
-            await displayList(BadChar, " movies with bad char:", "red");
+            await displayList(BadChar, " movies with bad char:", "lightblue");
             await PrintToAppOutputBG("Complete!", 1, 1, "lightgreen");
             PrintToConsoleOutputBG("Complete!");
             System.Media.SystemSounds.Asterisk.Play();
@@ -185,7 +183,7 @@ namespace RemuxMovies
             if (JsonFFProbe.Length == 0)
             {
                 err = "FFProbe returned nothing: " + file.originalFullPath;
-                await PrintToAppOutputBG(err, 0, 1,"red");
+                await PrintToAppOutputBG(err, 0, 1, "red");
                 ErroredListAdd(file.originalFullPath, err);
                 return false;
             }
@@ -201,7 +199,7 @@ namespace RemuxMovies
             {
                 bool FindAudioRet = await GetMovInfo(file);
                 if (FindAudioRet == false)
-                {                    
+                {
                     return false;
                 }
                 await PrintToAppOutputBG("Video mapping: " + VidMap, 0, 1);
@@ -248,6 +246,6 @@ namespace RemuxMovies
                 return false;
             }
         }
-       
+
     }
 }

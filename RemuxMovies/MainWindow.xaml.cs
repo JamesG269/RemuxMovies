@@ -64,7 +64,7 @@ namespace RemuxMovies
                                           "h.264","h.265","1080p","1080i","720p","2160p","web.dl","unrated","theatrical","extended","dvd","dd5","directors","director's","remastered",
                                           "uhd","hdr","sdr","4k","atmos","webrip","amzn",
         };
-        string[] VidExts = { ".mkv", ".mp4", ".avi", ".m4v", ".wmv" };
+        string[] VidExts = { ".mkv", ".mp4", ".avi", ".m4v", ".wmv",".mpg" };
         string SourceXML = "";
         string OldMoviesXML = "";
         string HardLinksXML = "";
@@ -205,6 +205,7 @@ namespace RemuxMovies
             }
             if (doAutoJob)
             {
+                await PrintToAppOutputBG("Auto mode specified. Executing Auto Jobs.",0,1);
                 await Task.Run(() => MakeHardlinks());
                 await MakeNfos();
                 ToggleButtons(false);
@@ -262,13 +263,14 @@ namespace RemuxMovies
                 using (StreamReader streamReader = new StreamReader(OldMoviesXML))
                 {
                     OldMovies = (List<OldMovie>)serializer.Deserialize(streamReader);
+                    /*
                     foreach (var o in OldMovies)
                     {
-                        //if (string.IsNullOrWhiteSpace(o.MovieName))
+                        if (string.IsNullOrWhiteSpace(o.MovieName))
                         {
                             o.MovieName = AddMovieName(o.FileName);
                         }
-                    }                    
+                    } */                   
                     int t = OldMovies.Where(c => c.Size > 0).Count();
                     int i = 0;
                     foreach (var o in OldMovies.ToList())
@@ -286,13 +288,12 @@ namespace RemuxMovies
                         if (x.Count() > 1)
                         {
                             save = true;
-                            OldMovies.RemoveAll(c => string.Compare(c.MovieName, o.MovieName, true) == 0 && c.Size == 0);
+                            OldMovies.RemoveAll(c => string.Compare(c.MovieName, o.MovieName, true) == 0 && c.Size < o.Size);
                             i += x.Where(c => c.Size == 0).Count();
                         }
                     }
                     await PrintToAppOutputBG(OldMovies.Count + " movies remembered.", 0, 1);
-                    await PrintToAppOutputBG(i.ToString() + " 0 sized movies removed. ", 0, 2);
-                    
+                    await PrintToAppOutputBG(i.ToString() + " 0 sized movies removed. ", 0, 2);                    
                 }
             }
             serializer = new XmlSerializer(typeof(List<OldHardLink>));
@@ -560,12 +561,13 @@ namespace RemuxMovies
 
             foreach (var OldHL in OldHardLinks.ToList())
             {
+                
                 string drv = System.IO.Path.GetPathRoot(OldHL.SourceFullPath);
                 if (!Directory.Exists(drv))
                 {
                     continue;
                 }
-                if (SourceDirs.Where(x => x.type == HardlinkType && x.Directory.Equals(OldHL.SourceDir)).Count() == 0)
+                if (SourceDirs.Where(x => x.type == HardlinkType && OldHL.SourceDir.Length >= x.Directory.Length && x.Directory.Equals(OldHL.SourceDir.Substring(0,x.Directory.Length))).Count() == 0)
                 {
                     continue;
                 }
@@ -646,7 +648,7 @@ namespace RemuxMovies
         }
         private async Task<bool> CheckNfoDupes()
         {
-            Dispatcher.Invoke(() => ClearWindows());
+            //Dispatcher.Invoke(() => ClearWindows());
             Dictionary<string, List<string>> HashName = new Dictionary<string, List<string>>();
             List<NewFileInfo> nfoFiles = new List<NewFileInfo>();
 

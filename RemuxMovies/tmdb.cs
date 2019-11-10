@@ -57,7 +57,7 @@ namespace RemuxMovies
             TMDbClient client = new TMDbClient(TMDBAPIKEY);
             int skip = 0;
             do
-            {
+            {                
                 List<string> searchStrs = new List<string>(4) { "", "", "", "" };
 
                 int maxsize = 0;
