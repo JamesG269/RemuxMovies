@@ -14,6 +14,8 @@
     <WarningLevel>4</WarningLevel>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -58,14 +60,20 @@
     <ApplicationIcon>RemuxMovies.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ConsoleControl.WPF, Version=1.2.1.0, Culture=neutral, PublicKeyToken=bb812711dbc508e1, processorArchitecture=MSIL">
-      <HintPath>..\packages\ConsoleControl.WPF.1.2.1\lib\net40-client\ConsoleControl.WPF.dll</HintPath>
+    <Reference Include="ConsoleControl.WPF, Version=1.3.0.0, Culture=neutral, PublicKeyToken=bb812711dbc508e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\ConsoleControl.WPF.1.3.0\lib\net40-client\ConsoleControl.WPF.dll</HintPath>
     </Reference>
-    <Reference Include="ConsoleControlAPI, Version=1.2.1.0, Culture=neutral, PublicKeyToken=7c86b8a36b9c33e2, processorArchitecture=MSIL">
-      <HintPath>..\packages\ConsoleControlAPI.1.2.1\lib\net40\ConsoleControlAPI.dll</HintPath>
+    <Reference Include="ConsoleControlAPI, Version=1.3.0.0, Culture=neutral, PublicKeyToken=7c86b8a36b9c33e2, processorArchitecture=MSIL">
+      <HintPath>..\packages\ConsoleControlAPI.1.3.0\lib\net40\ConsoleControlAPI.dll</HintPath>
     </Reference>
-    <Reference Include="FFMpegCore, Version=1.0.10.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\FFMpegCore.1.0.10\lib\netstandard2.0\FFMpegCore.dll</HintPath>
+    <Reference Include="FFMpegCore, Version=4.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\FFMpegCore.4.8.0\lib\netstandard2.0\FFMpegCore.dll</HintPath>
+    </Reference>
+    <Reference Include="Instances, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Instances.2.0.0\lib\netstandard2.0\Instances.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.7.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\WindowsAPICodePack-Core.1.1.2\lib\Microsoft.WindowsAPICodePack.dll</HintPath>
@@ -73,41 +81,54 @@
     <Reference Include="Microsoft.WindowsAPICodePack.Shell, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\WindowsAPICodePack-Shell.1.1.1\lib\Microsoft.WindowsAPICodePack.Shell.dll</HintPath>
     </Reference>
-    <Reference Include="MoreLinq, Version=3.2.0.0, Culture=neutral, PublicKeyToken=384d532d7e88985d, processorArchitecture=MSIL">
-      <HintPath>..\packages\morelinq.3.2.0\lib\net451\MoreLinq.dll</HintPath>
+    <Reference Include="MoreLinq, Version=3.3.2.0, Culture=neutral, PublicKeyToken=384d532d7e88985d, processorArchitecture=MSIL">
+      <HintPath>..\packages\morelinq.3.3.2\lib\net451\MoreLinq.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Ookii.Dialogs.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
-      <HintPath>..\packages\Ookii.Dialogs.Wpf.1.1.0\lib\net45\Ookii.Dialogs.Wpf.dll</HintPath>
+    <Reference Include="Ookii.Dialogs.Wpf, Version=5.0.0.0, Culture=neutral, PublicKeyToken=66aa232afad40158, processorArchitecture=MSIL">
+      <HintPath>..\packages\Ookii.Dialogs.Wpf.5.0.1\lib\net462\Ookii.Dialogs.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Drawing.Common.4.5.1\lib\net461\System.Drawing.Common.dll</HintPath>
+    <Reference Include="System.Drawing.Common, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Drawing.Common.7.0.0\lib\net462\System.Drawing.Common.dll</HintPath>
     </Reference>
     <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Json, Version=2.0.6.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Json.4.5.0\lib\netstandard2.0\System.Json.dll</HintPath>
+    <Reference Include="System.Json, Version=2.0.8.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Json.4.7.1\lib\net461\System.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Memory, Version=4.0.1.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http, Version=4.1.1.3, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Net.Http.4.3.4\lib\net46\System.Net.Http.dll</HintPath>
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime, Version=4.1.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.4.3.1\lib\net462\System.Runtime.dll</HintPath>
       <Private>True</Private>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="System.Security" />
     <Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -130,6 +151,15 @@
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Text.Encodings.Web, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encodings.Web.7.0.0\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Json.7.0.0\lib\net462\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
     <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
     </Reference>
@@ -141,14 +171,17 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="TMDbLib, Version=1.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\TMDbLib.1.4.0-alpha\lib\net45\TMDbLib.dll</HintPath>
+    <Reference Include="TMDbLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\TMDbLib.1.9.2\lib\net45\TMDbLib.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="Xabe.FFmpeg, Version=3.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Xabe.FFmpeg.3.4.0\lib\netstandard2.0\Xabe.FFmpeg.dll</HintPath>
+    <Reference Include="Xabe.FFmpeg, Version=5.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Xabe.FFmpeg.5.2.0\lib\netstandard2.0\Xabe.FFmpeg.dll</HintPath>
+    </Reference>
+    <Reference Include="Xabe.FFmpeg.Downloader, Version=5.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Xabe.FFmpeg.Downloader.5.2.0\lib\netstandard2.0\Xabe.FFmpeg.Downloader.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -195,45 +228,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="FFMPEG\bin\presets\ffprobe.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="FFMPEG\bin\presets\libvpx-1080p.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libvpx-1080p50_60.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libvpx-360p.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libvpx-720p.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libvpx-720p50_60.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libvpx-ultrafast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-baseline.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-fast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-faster.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-faster_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-fast_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-ipod320.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-ipod640.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-lossless_fast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-lossless_max.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-lossless_medium.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-lossless_slow.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-lossless_slower.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-lossless_ultrafast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-main.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-medium.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-medium_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-placebo.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-placebo_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-slow.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-slower.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-slower_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-slow_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-superfast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-superfast_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-ultrafast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-ultrafast_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-veryfast.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-veryfast_firstpass.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-veryslow.ffpreset" />
-    <None Include="FFMPEG\bin\presets\libx264-veryslow_firstpass.ffpreset" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

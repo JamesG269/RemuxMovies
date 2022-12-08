@@ -1,0 +1,1197 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TMDbLib</name>
+    </assembly>
+    <members>
+        <member name="P:TMDbLib.Client.TMDbClient.ActiveAccount">
+            <summary>
+            The account details of the user account associated with the current user session
+            </summary>
+            <remarks>This value is automaticly populated when setting a user session</remarks>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.DefaultCountry">
+            <summary>
+            ISO 3166-1 code. Ex. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.DefaultLanguage">
+            <summary>
+            ISO 639-1 code. Ex en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.DefaultImageLanguage">
+            <summary>
+            ISO 639-1 code. Ex en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.ThrowApiExceptions">
+            <summary>
+            Throw exceptions when TMDbs API returns certain errors, such as Not Found.
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.MaxRetryCount">
+            <summary>
+            The maximum number of times a call to TMDb will be retried
+            </summary>
+            <remarks>Default is 0</remarks>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.SessionId">
+            <summary>
+            The session id that will be used when TMDb requires authentication
+            </summary>
+            <remarks>Use 'SetSessionInformation' to assign this value</remarks>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.SessionType">
+            <summary>
+            The type of the session id, this will determine the level of access that is granted on the API
+            </summary>
+            <remarks>Use 'SetSessionInformation' to assign this value</remarks>
+        </member>
+        <member name="P:TMDbLib.Client.TMDbClient.WebProxy">
+             <summary>
+             Gets or sets the Web Proxy to use during requests to TMDb API.
+             </summary>
+             <remarks>
+             The Web Proxy is optional. If set, every request will be sent through it.
+             Use the constructor for setting it.
+            
+             For convenience, this library also offers a <see cref="T:System.Net.IWebProxy"/> implementation.
+             Check <see cref="T:TMDbLib.Utilities.TMDbAPIProxy"/> for more information.
+             </remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AddSessionId(TMDbLib.Rest.RestRequest,TMDbLib.Objects.Authentication.SessionType,TMDbLib.Rest.ParameterType)">
+            <summary>
+            Used internally to assign a session id to a request. If no valid session is found, an exception is thrown.
+            </summary>
+            <param name="req">Request</param>
+            <param name="targetType">The target session type to set. If set to Unassigned, the method will take the currently set session.</param>
+            <param name="parameterType">The location of the paramter in the resulting query</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.RequireSessionId(TMDbLib.Objects.Authentication.SessionType)">
+            <summary>
+            Used internally to determine if the current client has the required session set, if not an appropriate exception will be thrown
+            </summary>
+            <param name="sessionType">The type of session that is required by the calling method</param>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown if the calling method requires a user session and one isn't set on the client object</exception>
+            <exception cref="T:TMDbLib.Objects.Authentication.GuestSessionRequiredException">Thrown if the calling method requires a guest session and no session is set on the client object. (neither user or client type session)</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.SetSessionInformationAsync(System.String,TMDbLib.Objects.Authentication.SessionType)">
+            <summary>
+            Use this method to set the current client's authentication information.
+            The session id assigned here will be used by the client when ever TMDb requires it.
+            </summary>
+            <param name="sessionId">The session id to use when making calls that require authentication</param>
+            <param name="sessionType">The type of session id</param>
+            <remarks>
+            - Use the 'AuthenticationGetUserSessionAsync' and 'AuthenticationCreateGuestSessionAsync' methods to optain the respective session ids.
+            - User sessions have access to far for methods than guest sessions, these can currently only be used to rate media.
+            </remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountChangeFavoriteStatusAsync(TMDbLib.Objects.General.MediaType,System.Int32,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Change the favorite status of a specific movie. Either make the movie a favorite or remove that status depending on the supplied boolean value.
+            </summary>
+            <param name="mediaType">The type of media to influence</param>
+            <param name="mediaId">The id of the movie/tv show to influence</param>
+            <param name="isFavorite">True if you want the specified movie to be marked as favorite, false if not</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>True if the the movie's favorite status was successfully updated, false if not</returns>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountChangeWatchlistStatusAsync(TMDbLib.Objects.General.MediaType,System.Int32,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Change the state of a specific movie on the users watchlist. Either add the movie to the list or remove it, depending on the specified boolean value.
+            </summary>
+            <param name="mediaType">The type of media to influence</param>
+            <param name="mediaId">The id of the movie/tv show to influence</param>
+            <param name="isOnWatchlist">True if you want the specified movie to be part of the watchlist, false if not</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>True if the the movie's status on the watchlist was successfully updated, false if not</returns>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetDetailsAsync(System.Threading.CancellationToken)">
+            <summary>
+            Will retrieve the details of the account associated with the current session id
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetFavoriteMoviesAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the movies marked as favorite by the current user
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetFavoriteTvAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the tv shows marked as favorite by the current user
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetListsAsync(System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieve all lists associated with the provided account id
+            This can be lists that were created by the user or lists marked as favorite
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetMovieWatchlistAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the movies on the current users match list
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetRatedMoviesAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the movies rated by the current user
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetRatedTvShowEpisodesAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the tv show episodes rated by the current user
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetRatedTvShowsAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the tv shows rated by the current user
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AccountGetTvWatchlistAsync(System.Int32,TMDbLib.Objects.Account.AccountSortBy,TMDbLib.Objects.General.SortOrder,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get a list of all the tv shows on the current users match list
+            </summary>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.AuthenticationGetUserSessionAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Conveniance method combining 'AuthenticationRequestAutenticationTokenAsync', 'AuthenticationValidateUserTokenAsync' and 'AuthenticationGetUserSessionAsync'
+            </summary>
+            <param name="username">A valid TMDb username</param>
+            <param name="password">The passoword for the provided login</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetMoviesChangesAsync(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get a list of movie ids that have been edited. 
+            By default we show the last 24 hours and only 100 items per page. 
+            The maximum number of days that can be returned in a single request is 14. 
+            You can then use the movie changes API to get the actual data that has been changed. (.GetMovieChangesAsync)
+            </summary>
+            <remarks>the change log system to support this was changed on October 5, 2012 and will only show movies that have been edited since.</remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetPeopleChangesAsync(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get a list of people ids that have been edited. 
+            By default we show the last 24 hours and only 100 items per page. 
+            The maximum number of days that can be returned in a single request is 14. 
+            You can then use the person changes API to get the actual data that has been changed.(.GetPersonChangesAsync)
+            </summary>
+            <remarks>the change log system to support this was changed on October 5, 2012 and will only show people that have been edited since.</remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvChangesAsync(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get a list of TV show ids that have been edited. 
+            By default we show the last 24 hours and only 100 items per page. 
+            The maximum number of days that can be returned in a single request is 14. 
+            You can then use the TV changes API to get the actual data that has been changed. (.GetTvShowChangesAsync)
+            </summary>
+            <remarks>
+            the change log system to properly support TV was updated on May 13, 2014. 
+            You'll likely only find the edits made since then to be useful in the change log system.
+            </remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetJobsAsync(System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a list of departments and positions within
+            </summary>
+            <returns>Valid jobs and their departments</returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.DiscoverMoviesAsync">
+            <summary>
+            Can be used to discover movies matching certain criteria
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.DiscoverTvShowsAsync">
+            <summary>
+            Can be used to discover new tv shows matching certain criteria
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.FindAsync(TMDbLib.Objects.Find.FindExternalSource,System.String,System.Threading.CancellationToken)">
+            <summary>
+            FindAsync movies, people and tv shows by an external id.
+            The following types can be found based on the specified external id's
+            - Movies: Imdb
+            - People: Imdb, FreeBaseMid, FreeBaseId, TvRage
+            - TV Series: Imdb, FreeBaseMid, FreeBaseId, TvRage, TvDb
+            </summary>
+            <param name="source">The source the specified id belongs to</param>
+            <param name="id">The id of the object you wish to located</param>
+            <returns>A list of all objects in TMDb that matched your id</returns>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.FindAsync(TMDbLib.Objects.Find.FindExternalSource,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            FindAsync movies, people and tv shows by an external id.
+            The following types can be found based on the specified external id's
+            - Movies: Imdb
+            - People: Imdb, FreeBaseMid, FreeBaseId, TvRage
+            - TV Series: Imdb, FreeBaseMid, FreeBaseId, TvRage, TvDb
+            </summary>
+            <param name="source">The source the specified id belongs to</param>
+            <param name="id">The id of the object you wish to located</param>
+            <returns>A list of all objects in TMDb that matched your id</returns>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetListAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieve a list by it's id
+            </summary>
+            <param name="listId">The id of the list you want to retrieve</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetListIsMoviePresentAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Will check if the provided movie id is present in the specified list
+            </summary>
+            <param name="listId">Id of the list to check in</param>
+            <param name="movieId">Id of the movie to check for in the list</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.ListAddMovieAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Adds a movie to a specified list
+            </summary>
+            <param name="listId">The id of the list to add the movie to</param>
+            <param name="movieId">The id of the movie to add</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>True if the method was able to add the movie to the list, will retrun false in case of an issue or when the movie was already added to the list</returns>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.ListClearAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Clears a list, without confirmation.
+            </summary>
+            <param name="listId">The id of the list to clear</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>True if the method was able to remove the movie from the list, will retrun false in case of an issue or when the movie was not present in the list</returns>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.ListCreateAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Creates a new list for the user associated with the current session
+            </summary>
+            <param name="name">The name of the new list</param>
+            <param name="description">Optional description for the list</param>
+            <param name="language">Optional language that might indicate the language of the content in the list</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.ListDeleteAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Deletes the specified list that is owned by the user
+            </summary>
+            <param name="listId">A list id that is owned by the user associated with the current session id</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.ListRemoveMovieAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Removes a movie from the specified list
+            </summary>
+            <param name="listId">The id of the list to add the movie to</param>
+            <param name="movieId">The id of the movie to add</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>True if the method was able to remove the movie from the list, will retrun false in case of an issue or when the movie was not present in the list</returns>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetMovieAccountStateAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all information for a specific movie in relation to the current user account
+            </summary>
+            <param name="movieId">The id of the movie to get the account states for</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetMovieAsync(System.String,System.String,System.String,TMDbLib.Objects.Movies.MovieMethods,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a movie by its IMDb Id
+            </summary>
+            <param name="imdbId">The IMDb id of the movie OR the TMDb id as string</param>
+            <param name="language">Language to localize the results in.</param>
+            <param name="includeImageLanguage">If specified the api will attempt to return localized image results eg. en,it,es.</param>
+            <param name="extraMethods">A list of additional methods to execute for this req as enum flags</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>The reqed movie or null if it could not be found</returns>
+            <remarks>Requires a valid user session when specifying the extra method 'AccountStates' flag</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned, see remarks.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetMovieExternalIdsAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns an object that contains all known exteral id's for the movie related to the specified TMDB id.
+            </summary>
+            <param name="id">The TMDb id of the target movie.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.MovieSetRatingAsync(System.Int32,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Change the rating of a specified movie.
+            </summary>
+            <param name="movieId">The id of the movie to rate</param>
+            <param name="rating">The rating you wish to assign to the specified movie. Value needs to be between 0.5 and 10 and must use increments of 0.5. Ex. using 7.1 will not work and return false.</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>True if the the movie's rating was successfully updated, false if not</returns>
+            <remarks>Requires a valid guest or user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.GuestSessionRequiredException">Thrown when the current client object doens't have a guest or user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetNetworkAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a network by it's TMDb id. A network is a distributor of media content ex. HBO, AMC
+            </summary>
+            <param name="networkId">The id of the network object to retrieve</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetNetworkImagesAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Gets the logos of a network given a TMDb id
+            </summary>
+            <param name="networkId">The TMDb id of the network</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetNetworkAlternativeNamesAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Gets the alternative names of a network given a TMDb id
+            </summary>
+            <param name="networkId">The TMDb id of the network</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvEpisodeGroupsAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieve a collection of tv episode groups by id
+            </summary>
+            <param name="id">Episode group id</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>The requested collection of tv episode groups</returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvEpisodeAsync(System.Int32,System.Int32,System.Int32,TMDbLib.Objects.TvShows.TvEpisodeMethods,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieve a specific episode using TMDb id of the associated tv show.
+            </summary>
+            <param name="tvShowId">TMDb id of the tv show the desired episode belongs to.</param>
+            <param name="seasonNumber">The season number of the season the episode belongs to. Note use 0 for specials.</param>
+            <param name="episodeNumber">The episode number of the episode you want to retrieve.</param>
+            <param name="extraMethods">Enum flags indicating any additional data that should be fetched in the same request.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="includeImageLanguage">If specified the api will attempt to return localized image results eg. en,it,es.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvEpisodeCreditsAsync(System.Int32,System.Int32,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns a credits object for the specified episode.
+            </summary>
+            <param name="tvShowId">The TMDb id of the target tv show.</param>
+            <param name="seasonNumber">The season number of the season the episode belongs to. Note use 0 for specials.</param>
+            <param name="episodeNumber">The episode number of the episode you want to retrieve information for.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvEpisodeExternalIdsAsync(System.Int32,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns an object that contains all known exteral id's for the specified episode.
+            </summary>
+            <param name="tvShowId">The TMDb id of the target tv show.</param>
+            <param name="seasonNumber">The season number of the season the episode belongs to. Note use 0 for specials.</param>
+            <param name="episodeNumber">The episode number of the episode you want to retrieve information for.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvEpisodeImagesAsync(System.Int32,System.Int32,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all images all related to the season of specified episode.
+            </summary>
+            <param name="tvShowId">The TMDb id of the target tv show.</param>
+            <param name="seasonNumber">The season number of the season the episode belongs to. Note use 0 for specials.</param>
+            <param name="episodeNumber">The episode number of the episode you want to retrieve information for.</param>
+            <param name="language">
+            If specified the api will attempt to return a localized result. ex: en,it,es.
+            For images this means that the image might contain language specifc text
+            </param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvSeasonAsync(System.Int32,System.Int32,TMDbLib.Objects.TvShows.TvSeasonMethods,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieve a season for a specifc tv Show by id.
+            </summary>
+            <param name="tvShowId">TMDb id of the tv show the desired season belongs to.</param>
+            <param name="seasonNumber">The season number of the season you want to retrieve. Note use 0 for specials.</param>
+            <param name="extraMethods">Enum flags indicating any additional data that should be fetched in the same request.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="includeImageLanguage">If specified the api will attempt to return localized image results eg. en,it,es.</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>The requested season for the specified tv show</returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvSeasonCreditsAsync(System.Int32,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns a credits object for the season of the tv show associated with the provided TMDb id.
+            </summary>
+            <param name="tvShowId">The TMDb id of the target tv show.</param>
+            <param name="seasonNumber">The season number of the season you want to retrieve information for. Note use 0 for specials.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvSeasonExternalIdsAsync(System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns an object that contains all known exteral id's for the season of the tv show related to the specified TMDB id.
+            </summary>
+            <param name="tvShowId">The TMDb id of the target tv show.</param>
+            <param name="seasonNumber">The season number of the season you want to retrieve information for. Note use 0 for specials.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvSeasonImagesAsync(System.Int32,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all images all related to the season of specified tv show.
+            </summary>
+            <param name="tvShowId">The TMDb id of the target tv show.</param>
+            <param name="seasonNumber">The season number of the season you want to retrieve information for. Note use 0 for specials.</param>
+            <param name="language">
+            If specified the api will attempt to return a localized result. ex: en,it,es.
+            For images this means that the image might contain language specifc text
+            </param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowAccountStateAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all information for a specific tv show in relation to the current user account
+            </summary>
+            <param name="tvShowId">The id of the tv show to get the account states for</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Requires a valid user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.UserSessionRequiredException">Thrown when the current client object doens't have a user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowAsync(System.Int32,TMDbLib.Objects.TvShows.TvShowMethods,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieve a tv Show by id.
+            </summary>
+            <param name="id">TMDb id of the tv show to retrieve.</param>
+            <param name="extraMethods">Enum flags indicating any additional data that should be fetched in the same request.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es.</param>
+            <param name="includeImageLanguage">If specified the api will attempt to return localized image results eg. en,it,es.</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>The requested Tv Show</returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowCreditsAsync(System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns a credits object for the tv show associated with the provided TMDb id.
+            </summary>
+            <param name="id">The TMDb id of the target tv show.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetAggregateCredits(System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns a credits object for the aggragation of tv show associated with the provided TMDb id.
+            </summary>
+            <param name="id">The TMDb id of the target tv show.</param>
+            <param name="language">If specified the api will attempt to return a localized result. ex: en,it,es </param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns></returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowExternalIdsAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns an object that contains all known exteral id's for the tv show related to the specified TMDB id.
+            </summary>
+            <param name="id">The TMDb id of the target tv show.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowImagesAsync(System.Int32,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all images all related to the specified tv show.
+            </summary>
+            <param name="id">The TMDb id of the target tv show.</param>
+            <param name="language">
+            If specified the api will attempt to return a localized result. ex: en,it,es.
+            For images this means that the image might contain language specifc text
+            </param>
+            <param name="includeImageLanguage">If you want to include a fallback language (especially useful for backdrops) you can use the include_image_language parameter. This should be a comma separated value like so: include_image_language=en,null.</param>
+            <param name="cancellationToken">A cancellation token</param>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowListAsync(TMDbLib.Objects.TvShows.TvShowListType,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Fetches a dynamic list of TV Shows
+            </summary>
+            <param name="list">Type of list to fetch</param>
+            <param name="page">Page</param>
+            <param name="timezone">Only relevant for list type AiringToday</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns></returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowListAsync(TMDbLib.Objects.TvShows.TvShowListType,System.String,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Fetches a dynamic list of TV Shows
+            </summary>
+            <param name="list">Type of list to fetch</param>
+            <param name="language">Language</param>
+            <param name="page">Page</param>
+            <param name="timezone">Only relevant for list type AiringToday</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns></returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowPopularAsync(System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get the list of popular TV shows. This list refreshes every day.
+            </summary>
+            <returns>
+            Returns the basic information about a tv show.
+            For additional data use the main GetTvShowAsync method using the tv show id as parameter.
+            </returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvShowTopRatedAsync(System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Get the list of top rated TV shows. By default, this list will only include TV shows that have 2 or more votes. This list refreshes every day.
+            </summary>
+            <returns>
+            Returns the basic information about a tv show.
+            For additional data use the main GetTvShowAsync method using the tv show id as parameter
+            </returns>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.TvShowSetRatingAsync(System.Int32,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Change the rating of a specified tv show.
+            </summary>
+            <param name="tvShowId">The id of the tv show to rate</param>
+            <param name="rating">The rating you wish to assign to the specified tv show. Value needs to be between 0.5 and 10 and must use increments of 0.5. Ex. using 7.1 will not work and return false.</param>
+            <param name="cancellationToken">A cancellation token</param>
+            <returns>True if the the tv show's rating was successfully updated, false if not</returns>
+            <remarks>Requires a valid guest or user session</remarks>
+            <exception cref="T:TMDbLib.Objects.Authentication.GuestSessionRequiredException">Thrown when the current client object doens't have a guest or user session assigned.</exception>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetWatchProviderRegionsAsync(System.Threading.CancellationToken)">
+            <summary>
+            Returns a list of all of the countries TMDb has watch provider (OTT/streaming) data for.
+            </summary>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Uses <see cref="P:TMDbLib.Client.TMDbClient.DefaultLanguage"/> to translate data</remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetMovieWatchProvidersAsync(System.Threading.CancellationToken)">
+            <summary>
+            Returns a list of the watch provider (OTT/streaming) data TMDb has available for movies.
+            </summary>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Uses <see cref="P:TMDbLib.Client.TMDbClient.DefaultCountry"/> and <see cref="P:TMDbLib.Client.TMDbClient.DefaultLanguage"/> to filter or translate data</remarks>
+        </member>
+        <member name="M:TMDbLib.Client.TMDbClient.GetTvWatchProvidersAsync(System.Threading.CancellationToken)">
+            <summary>
+            Returns a list of the watch provider (OTT/streaming) data TMDb has available for shows.
+            </summary>
+            <param name="cancellationToken">A cancellation token</param>
+            <remarks>Uses <see cref="P:TMDbLib.Client.TMDbClient.DefaultCountry"/> and <see cref="P:TMDbLib.Client.TMDbClient.DefaultLanguage"/> to filter or translate data</remarks>
+        </member>
+        <member name="P:TMDbLib.Objects.Account.AccountDetails.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Account.AccountDetails.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="T:TMDbLib.Objects.Authentication.GuestSession">
+            <summary>
+            A guest session can be used to rate movies/tv shows without having a registered TMDb user account. 
+            You should only generate a single guest session per user (or device) as you will be able to attach the ratings to a TMDb user account in the future. 
+            There is also IP limits in place so you should always make sure it's the end user doing the guest session actions.
+            If a guest session is not used for the first time within 24 hours, it will be automatically discarded.
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Authentication.GuestSession.ExpiresAt">
+            <summary>
+            The date / time before which the session must be used for the first time else it will expire. Time is expressed as local time.
+            </summary>
+        </member>
+        <member name="T:TMDbLib.Objects.Authentication.Token">
+            <summary>
+            A request token is required in order to request a user authenticated session id.
+            Request tokens will expire after 60 minutes. 
+            As soon as a valid session id has been created the token will be useless.
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Authentication.Token.ExpiresAt">
+            <summary>
+            The date / time before which the token must be used, else it will expire. Time is expressed as local time.
+            </summary>
+        </member>
+        <member name="T:TMDbLib.Objects.Authentication.UserSession">
+            <summary>
+            Session object that can be retrieved after the user has correctly authenticated himself on the TMDb site. (using the referal url from the token provided previously)
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Changes.ChangeItemBase.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            This field is not always set
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeAdultMovies(System.Boolean)">
+            <summary>
+            Toggle the inclusion of adult titles. Expected value is a boolean, true or false. Default is false.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeVideoMovies(System.Boolean)">
+            <summary>
+            Toggle the inclusion of items marked as a video. Expected value is a boolean, true or false. Default is true.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfCast(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have this person id added as a cast member. Expected value is an integer (the id of a person).
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfCast(System.Collections.Generic.IEnumerable{TMDbLib.Objects.TvShows.Cast})">
+            <summary>
+            Only include movies that have this person id added as a cast member.
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfCompany(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have this company id added as a crew member. Expected value is an integer (the id of a company).
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfCompany(System.Collections.Generic.IEnumerable{TMDbLib.Objects.Companies.Company})">
+            <summary>
+            Only include movies that have this company id added as a crew member.
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfCrew(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have this person id added as a crew member. Expected value is an integer (the id of a person).
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfCrew(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Crew})">
+            <summary>
+            Only include movies that have this person id added as a crew member.
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfGenre(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies with the specified genres. Expected value is an integer (the id of a genre).
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfGenre(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include movies with the specified genres.
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfKeywords(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies with the specified keywords. Expected value is an integer (the id of a keyword).
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfKeywords(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include movies with the specified keywords.
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfPeople(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have these person id's added as a cast or crew member. Expected value is an integer (the id or ids of a person).
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAllOfPeople(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include movies that have these person id's added as a cast or crew member.
+            This method performs an AND query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfCast(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have this person id added as a cast member. Expected value is an integer (the id of a person).
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfCast(System.Collections.Generic.IEnumerable{TMDbLib.Objects.TvShows.Cast})">
+            <summary>
+            Only include movies that have this person id added as a cast member.
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfCompany(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have this company id added as a crew member. Expected value is an integer (the id of a company).
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfCompany(System.Collections.Generic.IEnumerable{TMDbLib.Objects.Companies.Company})">
+            <summary>
+            Only include movies that have this company id added as a crew member.
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfCrew(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have this person id added as a crew member. Expected value is an integer (the id of a person).
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfCrew(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Crew})">
+            <summary>
+            Only include movies that have this person id added as a crew member.
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfGenre(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies with the specified genres. Expected value is an integer (the id of a genre).
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfGenre(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include movies with the specified genres.
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfKeywords(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies with the specified keywords. Expected value is an integer (the id of a keyword).
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfKeywords(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include movies with the specified keywords.
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfPeople(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include movies that have these person id's added as a cast or crew member. Expected value is an integer (the id or ids of a person).
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.IncludeWithAnyOfPeople(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include movies that have these person id's added as a cast or crew member.
+            This method performs an OR query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.OrderBy(TMDbLib.Objects.Discover.DiscoverMovieSortBy)">
+            <summary>
+            Available options are: popularity.ascpopularity.descrelease_date.ascrelease_date.descrevenue.ascrevenue.descprimary_release_date.ascprimary_release_date.descoriginal_title.ascoriginal_title.descvote_average.ascvote_average.descvote_count.ascvote_count.desc
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereAnyReleaseDateIsInYear(System.Int32)">
+            <summary>
+            Filter the results by all available release dates that have the specified value added as a year. Expected value is an integer (year).
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereCertificationIs(System.String,System.String)">
+            <summary>
+            Only include movies with this certification. Expected value is a valid certification for the specificed 'certification_country'.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereCertificationIsAtMost(System.String,System.String)">
+            <summary>
+            Only include movies with this certification and lower. Expected value is a valid certification for the specificed 'certification_country'.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereCertificationIsAtLeast(System.String,System.String)">
+            <summary>
+            Only include movies with this certification and higher. Expected value is a valid certification for the specificed 'certification_country'.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WherePrimaryReleaseDateIsAfter(System.DateTime)">
+            <summary>
+            Filter by the primary release date and only include those which are greater than or equal to the specified value. Expected format is YYYY-MM-DD.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WherePrimaryReleaseDateIsBefore(System.DateTime)">
+            <summary>
+            Filter by the primary release date and only include those which are greater than or equal to the specified value. Expected format is YYYY-MM-DD.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WherePrimaryReleaseIsInYear(System.Int32)">
+            <summary>
+            Filter the results so that only the primary release date year has this value. Expected value is a year.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereReleaseDateIsAfter(System.DateTime)">
+            <summary>
+            Filter by all available release dates and only include those which are greater or equal to the specified value. Expected format is YYYY-MM-DD.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereReleaseDateIsBefore(System.DateTime)">
+            <summary>
+            Filter by all available release dates and only include those which are less or equal to the specified value. Expected format is YYYY-MM-DD.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereVoteAverageIsAtLeast(System.Double)">
+            <summary>
+            Filter movies by their vote average and only include those that have an average rating that is equal to or higher than the specified value. Expected value is a float.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereVoteAverageIsAtMost(System.Double)">
+            <summary>
+            Filter movies by their vote average and only include those that have an average rating that is equal to or lower than the specified value. Expected value is a float.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereVoteCountIsAtLeast(System.Int32)">
+            <summary>
+            Filter movies by their vote count and only include movies that have a vote count that is equal to or lower than the specified value.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereVoteCountIsAtMost(System.Int32)">
+            <summary>
+            Filter movies by their vote count and only include movies that have a vote count that is equal to or lower than the specified value. Expected value is an integer.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereReleaseDateIsInRegion(System.String)">
+            <summary>
+            Specifies which region to use for release date filtering (using ISO 3166-1 code)
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereLanguageIs(System.String)">
+            <summary>
+            Specifies which language to use for translatable fields
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverMovie.WhereOriginalLanguageIs(System.String)">
+            <summary>
+            Specifies which language to use for translatable fields
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.OrderBy(TMDbLib.Objects.Discover.DiscoverTvShowSortBy)">
+            <summary>
+            Available options are vote_average.desc, vote_average.asc, first_air_date.desc, first_air_date.asc, popularity.desc, popularity.asc
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.UseTimezone(System.String)">
+            <summary>
+            Specify a timeone to calculate proper date offsets. A list of valid timezones can be found by using the timezones/list method.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereAirDateIsAfter(System.DateTime)">
+            <summary>
+            The minimum episode air date to include. Expected format is YYYY-MM-DD. Can be used in conjunction with a specified timezone.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereAirDateIsBefore(System.DateTime)">
+            <summary>
+            The maximum episode air date to include. Expected format is YYYY-MM-DD. Can be used in conjunction with a specified timezone.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereFirstAirDateIsAfter(System.DateTime)">
+            <summary>
+            The minimum release to include. Expected format is YYYY-MM-DD.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereFirstAirDateIsBefore(System.DateTime)">
+            <summary>
+            The maximum release to include. Expected format is YYYY-MM-DD.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereFirstAirDateIsInYear(System.Int32)">
+            <summary>
+            Filter the results release dates to matches that include this value. Expected value is a year.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereGenresInclude(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Only include TV shows with the specified genres. Expected value is an integer (the id of a genre). Multiple values can be specified. Comma separated indicates an 'AND' query, while a pipe (|) separated value indicates an 'OR'.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereGenresInclude(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include TV shows with the specified genres. Expected value is an integer (the id of a genre). Multiple values can be specified. Comma separated indicates an 'AND' query, while a pipe (|) separated value indicates an 'OR'.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereNetworksInclude(System.Collections.Generic.IEnumerable{TMDbLib.Objects.TvShows.Network})">
+            <summary>
+            Filter TV shows to include a specific network. Expected value is an integer (the id of a network). They can be comma separated to indicate an 'AND' query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereNetworksInclude(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Filter TV shows to include a specific network. Expected value is an integer (the id of a network). They can be comma separated to indicate an 'AND' query.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereVoteAverageIsAtLeast(System.Double)">
+            <summary>
+            Only include TV shows that are equal to, or have a higher average rating than this value. Expected value is a float.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereVoteCountIsAtLeast(System.Int32)">
+            <summary>
+            Only include TV shows that are equal to, or have a vote count higher than this value. Expected value is an integer.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereOriginalLanguageIs(System.String)">
+            <summary>
+            Specifies which language to use for translatable fields
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereRuntimeIsAtLeast(System.Int32)">
+            <summary>
+            Only include TV shows that are equal to, or have a runtime higher than this value. Expected value is an integer (minutes).
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereRuntimeIsAtMost(System.Int32)">
+            <summary>
+            Only include TV shows that are equal to, or have a runtime lower than this value. Expected value is an integer (minutes).
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.IncludeNullFirstAirDates(System.Boolean)">
+            <summary>
+            Toggle the inclusion of TV shows with null first air data. Expected value is a boolean, true or false.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereGenresExclude(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Genre})">
+            <summary>
+            Exclude TV shows with the specified genres. Expected value is a list of Generes. 
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereGenresExclude(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Exclude TV shows with the specified genres. Expected value is an integer (the id of a genre).
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereCompaniesInclude(System.Collections.Generic.IEnumerable{TMDbLib.Objects.Companies.Company})">
+            <summary>
+            Only include TV shows with the specified companies. Expected value is an list of companies. 
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereCompaniesInclude(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Only include TV shows with the specified companies. Expected value is a list of integer (the id of a company). 
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereScreenedTheatrically(System.Boolean)">
+            <summary>
+            Filter results to include items that have been screened theatrically.
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereKeywordsInclude(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Keyword})">
+            <summary>
+            Filter TV shows to include a specific keyword. Expected value is a list of keywords.
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereKeywordsInclude(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Filter TV shows to include a specific keyword. Expected value is a list of integer (the id of a keyword).
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereKeywordsExclude(System.Collections.Generic.IEnumerable{TMDbLib.Objects.General.Keyword})">
+            <summary>
+            Filter TV shows to exclude a specific keyword. Expected value is a list of keywords.
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereKeywordsExclude(System.Collections.Generic.IEnumerable{System.Int32})">
+            <summary>
+            Filter TV shows to exclude a specific keyword. Expected value is a list of integer (the id of a keyword).
+            </summary>        
+        </member>
+        <member name="M:TMDbLib.Objects.Discover.DiscoverTv.WhereLanguageIs(System.String)">
+            <summary>
+            Specifies which language to use for translatable fields
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.AccountState.Favorite">
+            <summary>
+            Represents the current favorite status of the related movie for the current user session.
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.AccountState.Id">
+            <summary>
+            The TMDb id for the related movie
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.AccountState.Watchlist">
+            <summary>
+            Represents the presence of the related movie on the current user's watchlist.
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.AlternativeTitle.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.AlternativeTitle.Type">
+            <summary>
+            The type of title (e.g. working title, DVD title, modern title)
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.ImageData.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.ProductionCountry.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.Translation.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.Video.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.Video.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.General.WatchProviderRegion.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Lists.TMDbList`1.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Movies.Country.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Movies.ListResult.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="F:TMDbLib.Objects.Movies.MovieMethods.AccountStates">
+            <summary>
+            Requires a valid user session to be set on the client object
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Movies.ReleaseDateItem.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Movies.ReleaseDatesContainer.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Movies.SpokenLanguage.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.People.TaggedImage.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Reviews.Review.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Search.SearchList.Iso_639_1">
+            <summary>
+            A language code, e.g. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.Search.SearchTv.OriginCountry">
+            <summary>
+            Country ISO code ex. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.TvShows.ContentRating.Iso_3166_1">
+            <summary>
+            A country code, e.g. US
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.TvShows.TvEpisodeAccountState.Id">
+            <summary>
+            The TMDb if for the related movie
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.TvShows.TvSeason.Id">
+            <summary>
+            Object Id, will only be populated when explicitly getting episode details
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.TvShows.TvShow.Languages">
+            <summary>
+            language ISO code ex. en
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Objects.TvShows.TvShow.OriginCountry">
+            <summary>
+            Country ISO code ex. US
+            </summary>
+        </member>
+        <member name="T:TMDbLib.Utilities.Converters.TmdbIntArrayAsObjectConverter">
+            <summary>
+            In some cases, TMDb sends a list of integers as an object
+            </summary>
+        </member>
+        <member name="T:TMDbLib.Utilities.TMDbAPIProxy">
+            <summary>
+            Represents a Web Proxy to use for TMDb API Requests.
+            </summary>
+            <remarks>
+            This is a very simple implementation of a Web Proxy to be used when requesting data from TMDb API.
+            It does not support proxy bypassing or multi-proxy configuration based on the destination URL, for instance.
+            </remarks>
+        </member>
+        <member name="M:TMDbLib.Utilities.TMDbAPIProxy.#ctor(System.Uri,System.Net.ICredentials)">
+            <summary>
+            Initializes a new instance for this Proxy
+            </summary>
+        </member>
+        <member name="P:TMDbLib.Utilities.TMDbAPIProxy.Credentials">
+            <summary>
+            Gets or sets the credentials to use for authenticating in the proxy server.
+            </summary>
+        </member>
+        <member name="M:TMDbLib.Utilities.TMDbAPIProxy.GetProxy(System.Uri)">
+            <summary>
+            Gets the proxy server <see cref="T:System.Uri"/> to be used when accessing <paramref name="destination"/>.
+            </summary>
+            <param name="destination">The destination URL to be accessed.</param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

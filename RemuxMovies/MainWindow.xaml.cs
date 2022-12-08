@@ -29,7 +29,8 @@ using System.Xml.Linq;
 using System.Xml.Serialization;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using Xabe.FFmpeg;
-using Xabe.FFmpeg.Enums;
+using Xabe.FFmpeg.Downloader;
+
 
 namespace RemuxMovies
 {
@@ -118,11 +119,12 @@ namespace RemuxMovies
             UpdateRememberedList();
 
             await PrintToAppOutputBG("Downloading latest FFMpeg/FFProbe if version not up to date.", 0, 1);
-            FFmpeg.ExecutablesPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RemuxMovies\\FFmpeg\\");
+            string ffmpegpath = (System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RemuxMovies\\FFmpeg\\"));
+            FFmpeg.SetExecutablesPath(ffmpegpath);
             var ffmpegDir = System.IO.Path.Combine(FFmpeg.ExecutablesPath, "ffmpeg.exe");
             try
             {
-                await FFmpeg.GetLatestVersion();
+                await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official,ffmpegpath);
             }
             catch
             {

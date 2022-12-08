@@ -79,3 +79,6 @@ C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dia
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Ookii.Dialogs.Wpf.xml
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\System.ValueTuple.xml
 C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\bin\x64\Release\Xabe.FFmpeg.xml
+C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csproj.AssemblyReference.cache
+C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csproj.SuggestedBindingRedirects.cache
+C:\Users\jgentile\source\repos\RemuxMovies\RemuxMovies\obj\x64\Release\RemuxMovies.csproj.CoreCompileInputs.cache

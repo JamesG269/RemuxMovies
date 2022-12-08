@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using Xabe.FFmpeg;
-using Xabe.FFmpeg.Enums;
+
 namespace RemuxMovies
 {
     /// <summary>

@@ -27,7 +27,7 @@ using System.Xml.Linq;
 using System.Xml.Serialization;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using Xabe.FFmpeg;
-using Xabe.FFmpeg.Enums;
+
 
 namespace RemuxMovies
 {
@@ -38,19 +38,22 @@ namespace RemuxMovies
     {
         public void UpdateRememberedList()
         {
-            List<OldMovie> oldMovieList = OldMovies.GroupBy(p => p.MovieName).Select(g => g.FirstOrDefault()).ToList();                
-            var longest = oldMovieList.Aggregate((max, cur) => max.MovieName.Length > cur.MovieName.Length ? max : cur).MovieName.Length;
-            int i = 1;
-            foreach (var o in oldMovieList)
-            {                                
-                string name = o.MovieName.ToLower();
-                if (name.Length < longest)
+            List<OldMovie> oldMovieList = OldMovies.GroupBy(p => p.MovieName).Select(g => g.FirstOrDefault()).ToList();
+            if (oldMovieList.Count > 0)
                 {
-                    name += new string(' ', longest - name.Length);
+                var longest = oldMovieList.Aggregate((max, cur) => max.MovieName.Length > cur.MovieName.Length ? max : cur).MovieName.Length;
+                int i = 1;
+                foreach (var o in oldMovieList)
+                {
+                    string name = o.MovieName.ToLower();
+                    if (name.Length < longest)
+                    {
+                        name += new string(' ', longest - name.Length);
+                    }
+                    o.MovieName = name;
+                    o.Num = i;
+                    i++;
                 }
-                o.MovieName = name;
-                o.Num = i;
-                i++;
             }
             RememberedListBox.BeginInit();
             RememberedListBox.ItemsSource = oldMovieList;
